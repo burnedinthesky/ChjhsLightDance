@@ -1,4 +1,9 @@
+#ifndef LIGHTGROUPS_H
+#define LIGHTGROUPS_H
+
 #include <map>
+#include <string>
+#include <vector>
 
 #ifdef _WIN32
 #include <Windows.h>
@@ -6,63 +11,68 @@
 #include <unistd.h>
 #endif
 
-#include <string>
-#include <vector>
 
-class LEDBar {
+class LightBar {
   std::string hardwareId;
   bool powered = false;
 
 public:
   int id;
-  LEDBar(std::string hwId, int givenId) {
+  LightBar(std::string hwId, int givenId) {
     hardwareId = hwId;
     id = givenId;
   }
 
   bool getState() { return powered; }
 
-  void lightUp() { powered = true; }
+  void setPower(bool power) {
+      powered = power;
+  }
 
-  void turnOff() { powered = false; }
+  void setOpacity(int level) {
+    if (level < 0 || level > 10) throw std::invalid_argument("Power opacity must be between levels 0 to 10");
+
+  }
 };
 
 class LightingGroup {
-  std::vector<LEDBar> ledBars;
+  std::vector<LightBar> LightBars;
 
 public:
   LightingGroup(std::vector<std::string> hardwareIds,
-                std::map<int, LightingGroup> ledBars) {
-    int prevId = ledBars.empty() ? 0 : ledBars.rbegin()->first;
+                std::map<int, LightingGroup*> LightBars) {
+    int prevId = LightBars.empty() ? 0 : LightBars.rbegin()->first;
     for (auto hwId : hardwareIds) {
-      LEDBar tmp = LEDBar(hwId, ++prevId);
-      ledBars[prevId] = *this;
+      LightBar tmp = LightBar(hwId, ++prevId);
+      LightBars[prevId] = this;
     }
   }
 
-  void lightUp() {
-    for (auto bar : ledBars) {
-      bar.lightUp();
+  void setPower(bool state) {
+    for (auto bar : LightBars) {
+      bar.setPower(state);
     }
   }
 
-  void turnOff() {
-    for (auto bar : ledBars) {
-      bar.turnOff();
+  void setOpacity(int level) {
+    for (auto bar : LightBars) {
+      bar.setOpacity(level);
     }
   }
 
   std::map<int, bool> getLEDStates() {
     std::map<int, bool> ret;
-    for (auto bar : ledBars) {
+    for (auto bar : LightBars) {
       ret[bar.id] = bar.getState();
     }
     return ret;
   }
 
   void POST() {
-    lightUp();
+    setPower(true);
     sleep(1000);
-    turnOff();
+    setPower(false);
   }
 };
+
+#endif
