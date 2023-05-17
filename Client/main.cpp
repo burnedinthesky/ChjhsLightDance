@@ -13,26 +13,42 @@
 using json = nlohmann::json;
 
 std::map<std::string, LightingGroup*> LightingGroups;
+std::map<int, LightingGroup*> LBCorrespondingLG;
 
 void timedTrigger(int time) {
 
 }
 
-void initializeLightingGroups() {
-  LightingGroups["b1g1"] = new LightingGroup({}, {});
-  LightingGroups["b1g2"] = new LightingGroup({}, {});
+void initializeLightingGroups(json groups) {
+  for (auto& group : groups) {
+    LightingGroups[group["id"].get<std::string>()] = new LightingGroup(
+      group["pins"].get<std::vector<std::string>>(),
+      LBCorrespondingLG
+    );
+  }
 }
 
-void destoryAllLightingGroups() {
-
+void resetLightingGroups() {
+    for (auto group : LightingGroups) {
+        delete group.second;
+    }
+    LightingGroups.clear();
 }
 
 int main() {
-  json danceJson;
-  std::ifstream file("sample_dance.json");
-  file >> danceJson;
+  json configJson, danceJson;
+  std::ifstream spConfig("sample_jsons/sample_config.json");
+  spConfig >> configJson;
+  spConfig.close();
+  std::ifstream sdConfig("sample_jsons/sample_dance.json");
+  sdConfig >> danceJson;
+  sdConfig.close();
 
-  initializeLightingGroups();
+  initializeLightingGroups(configJson["groups"]);
+  for (auto it : LightingGroups) {
+    std::cout << it.first << std::endl;
+  }
+
   std::queue<std::pair<int, ltc::LGCommand*>> Commands = ltc::parseJSON(danceJson, LightingGroups);
   while (!Commands.empty()) {
     std::cout << Commands.front().first << std::endl;
