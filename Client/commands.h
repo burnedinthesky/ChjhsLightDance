@@ -3,10 +3,15 @@
 
 #include <string>
 #include <vector>
-#include <functional>
-#include <lightGroups.h>
 #include <queue>
+
 #include <algorithm>
+#include <functional>
+
+#include "lightGroups.h"
+#include "json.hpp"
+
+using json = nlohmann::json;
 
 namespace ltc {
 
@@ -31,6 +36,7 @@ class LGCommand {
       executeFn = [this, opacityLevel]() {
         targetLG.setOpacity(opacityLevel);
       };
+      break;
     };
     default:
       throw std::invalid_argument("LGCommand command type not initalized");
@@ -42,13 +48,14 @@ public:
     std::vector<std::string> func;
     std::string tmp;
     for (char c : command) {
-      if (c == ',') {
+      if (c == ';') {
         func.push_back(tmp);
         tmp = "";
       } else {
         tmp += c;
       } 
     }
+    func.push_back(tmp);
     std::string strCommandType = func[0];
     func.erase(func.begin());
 
@@ -66,36 +73,30 @@ public:
   }
 };
 
-std::map<std::string, std::queue<std::pair<int, LGCommand*>>> parseJSON(
-    std::vector<std::pair<std::string, std::string>> &entries,
+std::queue<std::pair<int, LGCommand*>> parseJSON(
+    json actions,
     std::map<std::string, LightingGroup*> &lightingGroups
     ) {
 
-  std::map<std::string, std::vector<std::pair<int, LGCommand*>>> LGCommands;
-  for (auto lg : lightingGroups) {
-    LGCommands[lg.first] = {};
-  }
+  std::vector<std::pair<int, LGCommand*>> LGCommands;
 
-  for (auto entry : entries) {
-    std::string targetLGId;
-    int triggerTime;
-    int delimPos = entry.second.find(";");
-    targetLGId = entry.second.substr(0, delimPos);
-    triggerTime = std::stoi(entry.second.substr(delimPos+1, entry.second.size() - delimPos - 1));
-
-    LGCommand* tmp = new LGCommand(*lightingGroups[targetLGId], entry.second);
-    LGCommands[targetLGId].push_back({triggerTime, tmp});
-  }
-
-  std::map<std::string, std::queue<std::pair<int, LGCommand*>>> orderedLGCommands;
-
-  for (auto commandList : LGCommands) {
-    std::sort(commandList.second.begin(), commandList.second.end());
-    orderedLGCommands[commandList.first] = std::queue<std::pair<int, LGCommand*>>();
-    for (auto element : commandList.second) {
-      orderedLGCommands[commandList.first].push(element);
+  for (json::iterator it = actions.begin(); it != actions.end(); ++it) {
+    std::string boardId = it.key();
+    for (auto& boardActions : it.value()) {
+      for (auto& item : boardActions.items()) {
+        int triggerTime = std::stoi(item.key());
+        LGCommand* tmp = new LGCommand(*lightingGroups[boardId], item.value());
+        LGCommands.push_back({triggerTime, tmp});
+      }
     }
-    std::vector<std::pair<int, LGCommand*>>().swap(commandList.second);
+ }
+
+  std::sort(LGCommands.begin(), LGCommands.end());
+
+  std::queue<std::pair<int, LGCommand*>> orderedLGCommands;
+
+  for (auto element : LGCommands) {
+    orderedLGCommands.push(element);
   }
 
   return orderedLGCommands;
