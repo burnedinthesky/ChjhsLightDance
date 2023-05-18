@@ -30,3 +30,5 @@ BridgeAPI/storage/
 # Cpp builds and debug files
 **/*.dSYM/
 Client/*.out
+
+**/.env

@@ -1,0 +1,46 @@
+{
+  "2D8230219E17": {
+    "id": "b1",
+    "name": "Max's board",
+    "mac_address": "2D8230219E17",
+    "groups": [
+      {
+        "id": "b1g1",
+        "pins": [
+          "0x00",
+          "0x01"
+        ]
+      },
+      {
+        "id": "b1g2",
+        "pins": [
+          "0x02",
+          "0x03"
+        ]
+      }
+    ]
+  },
+  "3C481F4E8E2C": {
+    "id": "b2",
+    "name": "Board 2",
+    "mac_address": "3C481F4E8E2C",
+    "groups": []
+  },
+  "3C481F5E8E2C": {
+    "id": "3C481F5E8E2C",
+    "name": "Yeah man",
+    "groups": [
+      {
+        "id": "b1g1",
+        "pins": []
+      },
+      {
+        "id": "b1g2",
+        "pins": [
+          "0x02",
+          "0x03"
+        ]
+      }
+    ]
+  }
+}
