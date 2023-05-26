@@ -32,3 +32,4 @@ BridgeAPI/storage/
 Client/*.out
 
 **/.env
+**/boost
