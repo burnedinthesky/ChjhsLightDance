@@ -13,23 +13,26 @@ fn get_lan_ip() -> String {
     let mut ip = String::new();
 
     for iface in ifaces {
-        // We're only interested in IPv4
         if let get_if_addrs::IfAddr::V4(ref ifv4) = iface.addr {
-            // Skip the loopback interface
             if !ifv4.is_loopback() {
                 ip = ifv4.ip.to_string();
                 break;
             }
         }
     }
-    println!("Cool man");
     ip
 }
+
+// #[tauri::command]
+// async fn open_explorer(path: String) -> tauri::Result<()> {
+
+// }
 
 fn main() {
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![greet])
         .invoke_handler(tauri::generate_handler![get_lan_ip])
+        // .invoke_handler(tauri::generate_handler![open_folder])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
