@@ -1,11 +1,17 @@
 {
     "b1g1": [
-        {"1000": "setPower;1"},
-        {"1100": "setPower;0"}
-    ],
-    "b1g2": [
-        {"1050": "setPower;1"},
-        {"1050": "setOpacity;0.5"},
-        {"1100": "setPower;0"}
+        {"0000": "setPower;1"},
+        {"500": "setBrightness;5"},
+        {"2000": "setBrightness;10"},
+        {"2050": "setPower;0"},
+        {"3000": "setBrightness;10"},
+        {"4000": "setBrightness;10"},
+        {"4300": "setBrightness;10"},
+        {"4600": "setBrightness;9"},
+        {"4900": "setBrightness;8"},
+        ...,
+        {"6700": "setBrightness;1"},
+        {"7000": "setBrightness;0"}
     ]
+    
 }
