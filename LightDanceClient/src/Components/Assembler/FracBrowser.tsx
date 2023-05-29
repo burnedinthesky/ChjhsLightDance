@@ -1,23 +1,25 @@
-import { Accordion, ActionIcon, Button, Modal, Radio, ScrollArea, TextInput } from "@mantine/core";
 import { useState } from "react";
-import { FragmentFolder } from "../../types/Frags";
-import { ChevronDownIcon, FolderAddIcon, FolderOpenIcon, PlusIcon, PuzzleIcon, XIcon } from "@heroicons/react/outline";
-import { invoke } from "@tauri-apps/api";
+
+import { Accordion, Button, Modal, Radio, ScrollArea, TextInput } from "@mantine/core";
+import { FolderAddIcon, PlusIcon, PuzzleIcon } from "@heroicons/react/outline";
+import FragBar from "./FragBar";
+
 import { open } from "@tauri-apps/api/dialog";
 
-const FracBrowser = () => {
-    const [fragments, setFragments] = useState<FragmentFolder[]>([
-        {
-            name: "Test",
-            fragments: [
-                {
-                    name: "Test",
-                    filePath: "/",
-                    length: 6,
-                },
-            ],
-        },
-    ]);
+import { useFragmentStore } from "../../Stores/Fragments";
+
+interface FracBrowserProps {
+    selectedFrag: string | null;
+    setSelectedFrag: React.Dispatch<React.SetStateAction<string | null>>;
+}
+
+const FracBrowser = ({ selectedFrag, setSelectedFrag }: FracBrowserProps) => {
+    const { fragByFolder, createFragment, fragFolders, createFragFolder } = useFragmentStore((state) => ({
+        fragByFolder: state.getFragmentByFolder(),
+        createFragment: state.createFragment,
+        fragFolders: state.folders,
+        createFragFolder: state.createFragFolder,
+    }));
 
     const [addFolderModal, setAddFolderModal] = useState<boolean>(false);
     const [newFolderName, setNewFolderName] = useState<string>("");
@@ -40,48 +42,24 @@ const FracBrowser = () => {
                         }}
                         radius="md"
                     >
-                        {fragments.map((fragFol, i) => (
+                        {Object.keys(fragByFolder).map((folKey, i) => (
                             <Accordion.Item key={i} value={i.toString()}>
                                 <Accordion.Control>
                                     <div className="w-full flex justify-between items-center ">
-                                        <h3 className="font-jbmono">{fragFol.name}</h3>
+                                        <h3 className="font-jbmono">{folKey}</h3>
                                     </div>
                                 </Accordion.Control>
                                 <Accordion.Panel>
                                     <div className="flex flex-col w-full ">
-                                        {fragFol.fragments.map((frag, j) => (
-                                            <div
+                                        {fragByFolder[folKey].map((frag, j) => (
+                                            <FragBar
                                                 key={`${i}-${j}`}
-                                                className="w-full bg-slate-200 font-jbmono px-9 py-3 flex items-center justify-between"
-                                            >
-                                                <p className="text">{frag.name}</p>
-                                                <div className="flex items-center gap-2">
-                                                    <ActionIcon onClick={() => {}}>
-                                                        <FolderOpenIcon className="w-6 text-blue-700" />
-                                                    </ActionIcon>
-                                                    <ActionIcon
-                                                        onClick={() => {
-                                                            // Remove current fragment
-                                                            setFragments((cur) =>
-                                                                cur.map((fol, k) =>
-                                                                    k === i
-                                                                        ? {
-                                                                              ...fol,
-                                                                              fragments: fol.fragments.filter(
-                                                                                  (_, l) => l !== j
-                                                                              ),
-                                                                          }
-                                                                        : fol
-                                                                )
-                                                            );
-                                                        }}
-                                                    >
-                                                        <XIcon className="w-6 text-blue-700" />
-                                                    </ActionIcon>
-                                                </div>
-                                            </div>
+                                                frag={frag}
+                                                selectedFrag={selectedFrag}
+                                                setSelectedFrag={setSelectedFrag}
+                                            />
                                         ))}
-                                        {fragFol.fragments.length === 0 && (
+                                        {fragByFolder[folKey].length === 0 && (
                                             <div className="w-full bg-slate-200 font-jbmono px-9 py-3 flex items-center justify-between">
                                                 <p>No fragments are currently in this folder</p>
                                             </div>
@@ -165,14 +143,14 @@ const FracBrowser = () => {
                 <div className="w-full mt-2">
                     <p className="text-sm font-medium">Select Folder</p>
                     <div className="w-full flex flex-col p-4 rounded-lg border border-slate-300 ">
-                        {fragments.map((fol) => (
+                        {Object.keys(fragByFolder).map((folKey) => (
                             <div className="w-full py-1">
                                 <Radio
-                                    label={fol.name}
-                                    checked={newFragmentFolder === fol.name}
+                                    label={folKey}
+                                    checked={newFragmentFolder === folKey}
                                     onChange={(e) => {
                                         if (!e.currentTarget.checked) return;
-                                        setNewFragmentFolder(fol.name);
+                                        setNewFragmentFolder(folKey);
                                     }}
                                 />
                             </div>
@@ -184,30 +162,19 @@ const FracBrowser = () => {
                         className="font-jbmono font-normal bg-blue-500 hover:bg-blue-600 transition-colors duration-100"
                         size="xs"
                         disabled={
-                            fragments === undefined ||
                             newFragmentFolder === "" ||
                             newFragmentName === "" ||
                             (() => {
-                                const specifiedFolder = fragments.find((val) => val.name === newFragmentFolder);
+                                const specifiedFolder = Object.keys(fragByFolder).find(
+                                    (val) => val === newFragmentFolder
+                                );
                                 if (!specifiedFolder) return true;
-                                return specifiedFolder.fragments.some((val) => val.name === newFragmentName);
+                                return fragByFolder[newFragmentFolder].some((val) => val.name === newFragmentName);
                             })()
                         }
                         leftIcon={<PlusIcon className="w-4" />}
                         onClick={() => {
-                            setFragments((cur) =>
-                                cur.map((fol) =>
-                                    fol.name === newFragmentFolder
-                                        ? {
-                                              ...fol,
-                                              fragments: [
-                                                  ...fol.fragments,
-                                                  { name: newFragmentName, filePath: newFragmentFile, length: 1 },
-                                              ],
-                                          }
-                                        : fol
-                                )
-                            );
+                            createFragment(newFragmentName, newFragmentFile, newFragmentFolder, null);
                             setNewFragmentFolder("");
                             setNewFragmentFile("");
                             setNewFragmentName("");
@@ -236,17 +203,11 @@ const FracBrowser = () => {
                     <Button
                         className="font-jbmono font-normal bg-blue-500 hover:bg-blue-600 transition-colors duration-100"
                         size="xs"
-                        disabled={newFolderName === "" || fragments.some((frag) => frag.name === newFolderName)}
+                        disabled={newFolderName === "" || fragFolders.some((frag) => frag.name === newFolderName)}
                         leftIcon={<FolderAddIcon className="w-4" />}
                         onClick={() => {
                             setAddFolderModal(false);
-                            setFragments((cur) => [
-                                ...cur,
-                                {
-                                    name: newFolderName,
-                                    fragments: [],
-                                },
-                            ]);
+                            createFragFolder(newFolderName);
                             setNewFolderName("");
                         }}
                     >
