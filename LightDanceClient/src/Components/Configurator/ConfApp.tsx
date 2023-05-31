@@ -5,10 +5,17 @@ import LightGroupConfigs from "./LightGroupConfig";
 import ShowConfigurator from "./ShowConfigurator";
 
 import { useBoardStore } from "../../Stores/Boards";
+import { showNotification } from "@mantine/notifications";
+import { randomId } from "@mantine/hooks";
+import ShowDisplay from "../Show";
+
+import { v4 as uuidv4 } from "uuid";
 
 const ConfApp = () => {
     const [lANIp, setLANIp] = useState<string>("Loading");
     const [focusedBoard, setFocusedBoard] = useState<string | null>(null);
+
+    const [startShowID, setStartShowID] = useState<string | null>(null);
 
     const { boards, addBoard, loadFromLocalStorage } = useBoardStore((state) => ({
         boards: state.boards,
@@ -17,10 +24,34 @@ const ConfApp = () => {
     }));
 
     useEffect(() => {
-        invoke("get_lan_ip").then((ret) => {
-            setLANIp(ret as string);
-        });
-        loadFromLocalStorage();
+        invoke("get_lan_ip")
+            .then((ret) => {
+                setLANIp(ret as string);
+            })
+            .catch((err) => {
+                showNotification({
+                    title: "Error",
+                    message: "Failed to get computer LAN IP, reload the app to try again.",
+                    color: "red",
+                    autoClose: false,
+                });
+            });
+
+        loadFromLocalStorage()
+            .then(() => {
+                if (boards.length !== 0) return;
+                // for (let i = 0; i < 7; i++) {
+                //     addBoard(randomId(), "127.0.0.1");
+                // }
+            })
+            .catch(() => {
+                showNotification({
+                    title: "Error",
+                    message: "Failed to load boards from local storage, reload the app to try again.",
+                    color: "red",
+                    autoClose: false,
+                });
+            });
     }, []);
 
     return (
@@ -37,7 +68,11 @@ const ConfApp = () => {
                     </div>
                     <h2 className="text-xl">Performance Configuration</h2>
                     <div className="w-full bg-zinc-50 border border-zinc-400 rounded-lg flex px-7 items-center">
-                        <ShowConfigurator />
+                        <ShowConfigurator
+                            startShow={() => {
+                                setStartShowID(uuidv4());
+                            }}
+                        />
                     </div>
                 </div>
 
@@ -48,6 +83,7 @@ const ConfApp = () => {
                     </div>
                 </div>
             </div>
+            {startShowID && <ShowDisplay key={startShowID} showId={startShowID} setShowId={setStartShowID} />}
         </div>
     );
 };

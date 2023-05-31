@@ -22,6 +22,7 @@ const FracAssembler = ({ selectedFrag }: FracAssemblerProps) => {
     const [addEmptyFragModal, setAddEmptyFragModal] = useState<number | null>(null);
     const [newEmptyFragMin, setNewEmptyFragMin] = useState<number | "">(0);
     const [newEmptyFragSec, setNewEmptyFragSec] = useState<number | "">(0);
+    const [newEmptyFragMSec, setNewEmptyFragMSec] = useState<number | "">(0);
 
     return (
         <div className="w-full">
@@ -71,10 +72,8 @@ const FracAssembler = ({ selectedFrag }: FracAssemblerProps) => {
                                 selectedFrag ? "hover:bg-blue-500" : "hover:bg-green-500"
                             }`}
                             onClick={() => {
-                                console.log("Cool thing");
                                 if (!selectedFrag) setAddEmptyFragModal(getMaxFragOrder() + 1);
                                 else {
-                                    console.log("Inna here");
                                     addFragmentOrder(selectedFrag, getMaxFragOrder() + 1);
                                 }
                             }}
@@ -97,7 +96,7 @@ const FracAssembler = ({ selectedFrag }: FracAssemblerProps) => {
             >
                 <div className="flex gap-3">
                     <NumberInput
-                        className="w-1/2"
+                        className="w-1/3"
                         label="Minutes"
                         value={newEmptyFragMin}
                         onChange={setNewEmptyFragMin}
@@ -105,12 +104,20 @@ const FracAssembler = ({ selectedFrag }: FracAssemblerProps) => {
                         max={10}
                     />
                     <NumberInput
-                        className="w-1/2"
+                        className="w-1/3"
                         label="Seconds"
                         value={newEmptyFragSec}
                         onChange={setNewEmptyFragSec}
                         min={0}
-                        max={10}
+                        max={60}
+                    />
+                    <NumberInput
+                        className="w-1/3"
+                        label="Milliseconds"
+                        value={newEmptyFragMSec}
+                        onChange={setNewEmptyFragMSec}
+                        min={0}
+                        max={999}
                     />
                 </div>
                 <div className="w-full flex justify-end mt-3">
@@ -120,16 +127,21 @@ const FracAssembler = ({ selectedFrag }: FracAssemblerProps) => {
                         disabled={
                             newEmptyFragMin === "" ||
                             newEmptyFragSec === "" ||
-                            (newEmptyFragMin === 0 && newEmptyFragSec === 0)
+                            newEmptyFragMSec === "" ||
+                            (newEmptyFragMin === 0 && newEmptyFragSec === 0 && newEmptyFragMSec === 0)
                         }
                         leftIcon={<PlusIcon className="w-4" />}
                         onClick={() => {
-                            createEmptyFragment((newEmptyFragMin as number) * 60 + (newEmptyFragSec as number), [
-                                addEmptyFragModal!,
-                            ]);
+                            createEmptyFragment(
+                                (newEmptyFragMin as number) * 60 +
+                                    (newEmptyFragSec as number) +
+                                    (newEmptyFragMSec as number) / 1000,
+                                [addEmptyFragModal!]
+                            );
                             setAddEmptyFragModal(null);
                             setNewEmptyFragMin(0);
                             setNewEmptyFragSec(0);
+                            setNewEmptyFragMSec(0);
                         }}
                     >
                         Add Empty Fragment

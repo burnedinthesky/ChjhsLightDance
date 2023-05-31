@@ -11,9 +11,13 @@ import { z } from "zod";
 
 export const useBoardStore = create<{
     boards: BoardData[];
+    audioFile: string | null;
+    editSinceLastFlash: boolean;
 
     loadFromLocalStorage(): Promise<void>;
     saveToLocalStorage(): void;
+
+    resetEditSinceLastFlash(): void;
 
     addBoard(mac_addr: string, ip: string, name?: string): void;
     linkConnectedBoard(boardId: string, ip: string): void;
@@ -26,19 +30,32 @@ export const useBoardStore = create<{
     setLGBars(LGId: string, lightBars: string[]): void;
     renameLG(LGId: string, newName: string): void;
     deleteLG(boardId: string, LGId: string): void;
+
+    setAudio(filename: string): Promise<void>;
+    deleteAudio(): Promise<void>;
 }>((set, get) => ({
     boards: [],
+    audioFile: null,
+    editSinceLastFlash: false,
+
+    resetEditSinceLastFlash() {
+        set((state) => ({
+            ...state,
+            editSinceLastFlash: false,
+        }));
+    },
 
     async loadFromLocalStorage() {
         if (!(await exists("board_configs.json", { dir: BaseDirectory.AppData })))
-            await writeTextFile("board_configs.json", JSON.stringify([]), {
+            await writeTextFile("board_configs.json", JSON.stringify({ boards: [], audio: null }), {
                 dir: BaseDirectory.AppData,
             });
 
         const localData = await JSON.parse(await readTextFile("board_configs.json", { dir: BaseDirectory.AppData }));
-        const result = z.array(BoardDataZod).safeParse(localData);
+        console.log(localData);
+        const result = z.object({ boards: z.array(BoardDataZod), audio: z.string().nullable() }).safeParse(localData);
         if (!result.success) {
-            await writeTextFile("board_configs.json", JSON.stringify([]), {
+            await writeTextFile("board_configs.json", JSON.stringify({ boards: [], audio: null }), {
                 dir: BaseDirectory.AppData,
             });
             showNotification({
@@ -51,23 +68,27 @@ export const useBoardStore = create<{
 
         set((state) => ({
             ...state,
-            boards: result.data.map((board) => ({
+            boards: result.data.boards.map((board) => ({
                 ...board,
                 status: "disconnected",
             })),
+            audioFile: result.data.audio,
+            editSinceLastFlash: true,
         }));
+
+        console.log("Loaded");
     },
     saveToLocalStorage() {
-        writeTextFile("board_configs.json", JSON.stringify(get().boards), { dir: BaseDirectory.AppData }).catch(
-            (err) => {
-                console.log(err);
-                notifications.show({
-                    title: "Error",
-                    message: "Auto-save failed, will try again next edit",
-                    color: "red",
-                });
-            }
-        );
+        writeTextFile("board_configs.json", JSON.stringify({ boards: get().boards, audio: get().audioFile }), {
+            dir: BaseDirectory.AppData,
+        }).catch((err) => {
+            console.log(err);
+            notifications.show({
+                title: "Error",
+                message: "Auto-save failed, will try again next edit",
+                color: "red",
+            });
+        });
         console.log("Writing to local!");
     },
 
@@ -84,6 +105,8 @@ export const useBoardStore = create<{
         set((state) => ({
             boards: [...state.boards, newBoard],
         }));
+
+        console.log(get().boards);
 
         get().compressAssignedNums();
         get().saveToLocalStorage();
@@ -189,6 +212,34 @@ export const useBoardStore = create<{
                       }
                     : board
             ),
+        }));
+        get().saveToLocalStorage();
+    },
+
+    async setAudio(filePath) {
+        get().deleteAudio();
+
+        let splitPath = filePath.split("\\");
+        splitPath = [...splitPath.slice(0, splitPath.length - 1), ...splitPath[splitPath.length - 1].split("/")];
+        const audioFileName = splitPath[splitPath.length - 1].replaceAll(" ", "_");
+
+        await copyFile(filePath, `${audioFileName}`, { dir: BaseDirectory.AppData });
+
+        console.log(audioFileName);
+
+        set((state) => ({
+            ...state,
+            audioFile: audioFileName,
+        }));
+        get().saveToLocalStorage();
+    },
+
+    async deleteAudio() {
+        if (get().audioFile && (await exists(get().audioFile!, { dir: BaseDirectory.AppData })))
+            await removeFile(get().audioFile!, { dir: BaseDirectory.AppData });
+        set((state) => ({
+            ...state,
+            audioFile: null,
         }));
         get().saveToLocalStorage();
     },
