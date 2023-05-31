@@ -1,12 +1,11 @@
 import { useState } from "react";
 
-import { Accordion, Button, Modal, Radio, ScrollArea, TextInput } from "@mantine/core";
-import { FolderAddIcon, PlusIcon, PuzzleIcon } from "@heroicons/react/outline";
+import { Accordion, ActionIcon, Button, Modal, Radio, ScrollArea, TextInput } from "@mantine/core";
+import { ChevronDownIcon, FolderAddIcon, PlusIcon, PuzzleIcon, TrashIcon } from "@heroicons/react/outline";
 import FragBar from "./FragBar";
 
-import { open } from "@tauri-apps/api/dialog";
-
 import { useFragmentStore } from "../../Stores/Fragments";
+import { AddFolderModal, AddFragmentModal } from "./ConfModals";
 
 interface FracBrowserProps {
     selectedFrag: string | null;
@@ -14,20 +13,23 @@ interface FracBrowserProps {
 }
 
 const FracBrowser = ({ selectedFrag, setSelectedFrag }: FracBrowserProps) => {
-    const { fragByFolder, createFragment, fragFolders, createFragFolder } = useFragmentStore((state) => ({
+    const { fragByFolder, fragFolders, deleteFragFolder } = useFragmentStore((state) => ({
         fragByFolder: state.getFragmentByFolder(),
-        createFragment: state.createFragment,
         fragFolders: state.folders,
-        createFragFolder: state.createFragFolder,
+        deleteFragFolder: state.deleteFragFolder,
     }));
 
     const [addFolderModal, setAddFolderModal] = useState<boolean>(false);
     const [newFolderName, setNewFolderName] = useState<string>("");
 
     const [addFragmentModal, setAddFragmentModal] = useState<boolean>(false);
-    const [newFragmentName, setNewFragmentName] = useState<string>("");
-    const [newFragmentFolder, setNewFragmentFolder] = useState<string>("");
-    const [newFragmentFile, setNewFragmentFile] = useState<string>("");
+    const [newFragmentData, setNewFragmentData] = useState<{
+        name: string;
+        folder: string;
+        file: string;
+    }>({ name: "", folder: "", file: "" });
+
+    const [deleteFolderModal, setDeleteFolderModal] = useState<string | null>(null);
 
     return (
         <div className="w-full">
@@ -37,16 +39,27 @@ const FracBrowser = ({ selectedFrag, setSelectedFrag }: FracBrowserProps) => {
                         className="w-full"
                         classNames={{
                             item: "w-full border-b border-b-slate-400 font-jbmono",
-                            control: "px-9 py-0 border-b border-b-slate-300",
+                            control: "px-9 py-0 border-b border-b-slate-300 gap-0",
                             content: "p-0 border-y border-y-slate-300",
+                            chevron: "mr-[1px] ml-0",
                         }}
                         radius="md"
+                        chevron={<ChevronDownIcon className="w-5" />}
                     >
                         {Object.keys(fragByFolder).map((folKey, i) => (
                             <Accordion.Item key={i} value={i.toString()}>
                                 <Accordion.Control>
-                                    <div className="w-full flex justify-between items-center ">
+                                    <div className="w-full flex justify-between items-center">
                                         <h3 className="font-jbmono">{folKey}</h3>
+                                        <ActionIcon
+                                            className="mr-2.5"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setDeleteFolderModal(folKey);
+                                            }}
+                                        >
+                                            <TrashIcon className="w-6 text-blue-600" />
+                                        </ActionIcon>
                                     </div>
                                 </Accordion.Control>
                                 <Accordion.Panel>
@@ -85,133 +98,63 @@ const FracBrowser = ({ selectedFrag, setSelectedFrag }: FracBrowserProps) => {
                 <Button
                     className="font-jbmono font-normal bg-blue-500 hover:bg-blue-600 transition-colors duration-100"
                     size="xs"
+                    disabled={Object.keys(fragFolders).length === 0}
                     leftIcon={<PuzzleIcon className="w-4" />}
                     onClick={() => {
                         setAddFragmentModal(true);
-                        setNewFragmentFolder("");
-                        setNewFragmentFile("");
-                        setNewFragmentName("");
+                        setNewFragmentData({
+                            name: "",
+                            folder: "",
+                            file: "",
+                        });
                     }}
                 >
                     Add Fragment
                 </Button>
             </div>
+
+            <AddFolderModal
+                addFolderModal={addFolderModal}
+                newFolderName={newFolderName}
+                setAddFolderModal={setAddFolderModal}
+                setNewFolderName={setNewFolderName}
+            />
+
+            <AddFragmentModal
+                addFragmentModal={addFragmentModal}
+                setAddFragmentModal={setAddFragmentModal}
+                newFragmentData={newFragmentData}
+                setNewFragmentData={setNewFragmentData}
+            />
+
             <Modal
-                opened={addFragmentModal}
+                opened={deleteFolderModal !== null}
                 onClose={() => {
-                    setAddFragmentModal(false);
+                    setDeleteFolderModal(null);
                 }}
+                title="Delete Folder"
                 centered
-                title="Add Fragment"
             >
-                <TextInput
-                    value={newFragmentName}
-                    onChange={(e) => setNewFragmentName(e.target.value)}
-                    label="Fragment Name"
-                    placeholder="Custom Name"
-                />
-                <div className="w-full mt-2">
-                    <p className="text-sm font-medium">Select File</p>
-                    <Button
-                        variant="light"
-                        color="gray"
-                        className={`w-full rounded-lg border border-slate-300 font-normal ${
-                            newFragmentFile ? "text-blue-600" : ""
-                        }`}
-                        onClick={async () => {
-                            const filePath = (await open({
-                                multiple: false,
-                                filters: [{ name: "Excel file", extensions: ["xlsx"] }],
-                            })) as string | undefined;
-                            if (!filePath) return;
-                            console.log(filePath);
-                            setNewFragmentFile(filePath);
-                        }}
-                    >
-                        {newFragmentFile
-                            ? (() => {
-                                  let splitPath = newFragmentFile.split("\\");
-                                  splitPath = [
-                                      ...splitPath.slice(0, splitPath.length - 1),
-                                      ...splitPath[splitPath.length - 1].split("/"),
-                                  ];
-                                  return splitPath[splitPath.length - 1];
-                              })()
-                            : "Select File"}
-                    </Button>
-                </div>
-                <div className="w-full mt-2">
-                    <p className="text-sm font-medium">Select Folder</p>
-                    <div className="w-full flex flex-col p-4 rounded-lg border border-slate-300 ">
-                        {Object.keys(fragByFolder).map((folKey) => (
-                            <div className="w-full py-1">
-                                <Radio
-                                    label={folKey}
-                                    checked={newFragmentFolder === folKey}
-                                    onChange={(e) => {
-                                        if (!e.currentTarget.checked) return;
-                                        setNewFragmentFolder(folKey);
-                                    }}
-                                />
-                            </div>
-                        ))}
-                    </div>
-                </div>
-                <div className="w-full mt-4 flex justify-end">
+                <p className="text-sm">
+                    Are you sure you want to delete "{deleteFolderModal}"? This will delete all fragments in it!
+                </p>
+                <div className="mt-4 w-full flex justify-end gap-2 items-center">
                     <Button
                         className="font-jbmono font-normal bg-blue-500 hover:bg-blue-600 transition-colors duration-100"
                         size="xs"
-                        disabled={
-                            newFragmentFolder === "" ||
-                            newFragmentName === "" ||
-                            (() => {
-                                const specifiedFolder = Object.keys(fragByFolder).find(
-                                    (val) => val === newFragmentFolder
-                                );
-                                if (!specifiedFolder) return true;
-                                return fragByFolder[newFragmentFolder].some((val) => val.name === newFragmentName);
-                            })()
-                        }
-                        leftIcon={<PlusIcon className="w-4" />}
-                        onClick={() => {
-                            createFragment(newFragmentName, newFragmentFile, newFragmentFolder, null);
-                            setNewFragmentFolder("");
-                            setNewFragmentFile("");
-                            setNewFragmentName("");
-                            setAddFragmentModal(false);
-                        }}
+                        onClick={() => setDeleteFolderModal(null)}
                     >
-                        Add Fragment
+                        Cancel
                     </Button>
-                </div>
-            </Modal>
-            <Modal
-                opened={addFolderModal}
-                onClose={() => {
-                    setAddFolderModal(false);
-                }}
-                centered
-                title="Add Folder"
-            >
-                <TextInput
-                    value={newFolderName}
-                    onChange={(e) => setNewFolderName(e.target.value)}
-                    label="Folder Name"
-                    placeholder="Custom Name"
-                />
-                <div className="w-full mt-4 flex justify-end">
                     <Button
-                        className="font-jbmono font-normal bg-blue-500 hover:bg-blue-600 transition-colors duration-100"
+                        className="font-jbmono font-normal bg-red-500 hover:bg-red-600 transition-colors duration-100"
                         size="xs"
-                        disabled={newFolderName === "" || fragFolders.some((frag) => frag.name === newFolderName)}
-                        leftIcon={<FolderAddIcon className="w-4" />}
                         onClick={() => {
-                            setAddFolderModal(false);
-                            createFragFolder(newFolderName);
-                            setNewFolderName("");
+                            deleteFragFolder(deleteFolderModal!);
+                            setDeleteFolderModal(null);
                         }}
                     >
-                        Add Folder
+                        Delete
                     </Button>
                 </div>
             </Modal>

@@ -19,10 +19,10 @@ function formatSeconds(seconds: number) {
 }
 
 const AsmFragBar = ({ frag, index, prevLength }: AsmFragBarProps) => {
-    const { getMaxFragOrder, swapFragOrder, deleteFragment } = useFragmentStore((state) => ({
+    const { getMaxFragOrder, swapFragOrder, removeFragOrder } = useFragmentStore((state) => ({
         getMaxFragOrder: state.getMaxFragOrder,
         swapFragOrder: state.swapFragmentOrder,
-        deleteFragment: state.deleteFragment,
+        removeFragOrder: state.removeFragmentOrder,
     }));
 
     return (
@@ -42,8 +42,8 @@ const AsmFragBar = ({ frag, index, prevLength }: AsmFragBarProps) => {
                 </ActionIcon>
                 <ActionIcon
                     onClick={() => {
-                        if (frag.order == getMaxFragOrder() || frag.order === null) return;
-                        swapFragOrder(frag.order, frag.order + 1);
+                        if (index >= getMaxFragOrder()) return;
+                        swapFragOrder(index, index + 1);
                     }}
                 >
                     <ArrowDownIcon className="w-5 text-blue-700" />
@@ -56,7 +56,7 @@ const AsmFragBar = ({ frag, index, prevLength }: AsmFragBarProps) => {
                 <p></p>
                 <ActionIcon
                     onClick={() => {
-                        deleteFragment(frag.fragment.id);
+                        removeFragOrder(frag.fragment.id, [index]);
                     }}
                 >
                     <XIcon className="w-6 text-blue-700" />

@@ -11,10 +11,10 @@ interface FracAssemblerProps {
 }
 
 const FracAssembler = ({ selectedFrag }: FracAssemblerProps) => {
-    const { createEmptyFragment, fragmentsByOrder, setFragmentOrder, getMaxFragOrder } = useFragmentStore((state) => ({
+    const { createEmptyFragment, fragmentsByOrder, addFragmentOrder, getMaxFragOrder } = useFragmentStore((state) => ({
         createEmptyFragment: state.createEmptyFragment,
         fragmentsByOrder: state.getFragmentByOrder(),
-        setFragmentOrder: state.setFragmentOrder,
+        addFragmentOrder: state.addFragmentOrder,
         getMaxFragOrder: state.getMaxFragOrder,
     }));
 
@@ -44,7 +44,7 @@ const FracAssembler = ({ selectedFrag }: FracAssemblerProps) => {
                                     onClick={() => {
                                         console.log("Cool thing");
                                         if (!selectedFrag) setAddEmptyFragModal(i);
-                                        else setFragmentOrder(selectedFrag, i);
+                                        else addFragmentOrder(selectedFrag, i);
                                     }}
                                 >
                                     <PlusCircleIcon
@@ -73,7 +73,7 @@ const FracAssembler = ({ selectedFrag }: FracAssemblerProps) => {
                                 if (!selectedFrag) setAddEmptyFragModal(getMaxFragOrder() + 1);
                                 else {
                                     console.log("Inna here");
-                                    setFragmentOrder(selectedFrag, getMaxFragOrder() + 1);
+                                    addFragmentOrder(selectedFrag, getMaxFragOrder() + 1);
                                 }
                             }}
                         >
@@ -121,10 +121,9 @@ const FracAssembler = ({ selectedFrag }: FracAssemblerProps) => {
                         }
                         leftIcon={<PlusIcon className="w-4" />}
                         onClick={() => {
-                            createEmptyFragment(
-                                (newEmptyFragMin as number) * 60 + (newEmptyFragSec as number),
-                                addEmptyFragModal!
-                            );
+                            createEmptyFragment((newEmptyFragMin as number) * 60 + (newEmptyFragSec as number), [
+                                addEmptyFragModal!,
+                            ]);
                             setAddEmptyFragModal(null);
                             setNewEmptyFragMin(0);
                             setNewEmptyFragSec(0);

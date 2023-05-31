@@ -13,6 +13,6 @@ export type FragmentFolder = {
 export type UIFragment = {
     fragment: Fragment;
     folder: FragmentFolder | null;
-    order: number | null;
+    order: number[];
     empty: boolean;
 };
