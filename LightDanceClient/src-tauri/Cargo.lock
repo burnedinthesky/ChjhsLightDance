@@ -3,17 +3,6 @@
 version = 3
 
 [[package]]
-name = "LightDanceClient"
-version = "0.0.0"
-dependencies = [
- "get_if_addrs",
- "serde",
- "serde_json",
- "tauri",
- "tauri-build",
-]
-
-[[package]]
 name = "adler"
 version = "1.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1400,6 +1389,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2b00cc1c228a6782d0f076e7b232802e0c5689d41bb5df366f2a6b6621cfdfe1"
 
 [[package]]
+name = "light_dance_client"
+version = "1.0.0"
+dependencies = [
+ "get_if_addrs",
+ "open 1.7.1",
+ "serde",
+ "serde_json",
+ "tauri",
+ "tauri-build",
+]
+
+[[package]]
 name = "line-wrap"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1681,6 +1682,16 @@ name = "once_cell"
 version = "1.17.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b7e5500299e16ebb147ae15a00a942af264cf3688f47923b8fc2cd5858f23ad3"
+
+[[package]]
+name = "open"
+version = "1.7.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dcea7a30d6b81a2423cc59c43554880feff7b57d12916f231a79f8d6d9470201"
+dependencies = [
+ "pathdiff",
+ "winapi 0.3.9",
+]
 
 [[package]]
 name = "open"
@@ -2643,7 +2654,7 @@ dependencies = [
  "ignore",
  "objc",
  "once_cell",
- "open",
+ "open 3.2.0",
  "os_pipe",
  "percent-encoding",
  "rand 0.8.5",

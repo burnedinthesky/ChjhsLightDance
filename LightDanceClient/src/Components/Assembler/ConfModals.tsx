@@ -3,6 +3,96 @@ import { useFragmentStore } from "../../Stores/Fragments";
 import { open } from "@tauri-apps/api/dialog";
 import { FolderAddIcon, PlusIcon } from "@heroicons/react/outline";
 
+interface RenameFolderModalProps {
+    renameModalTarget: string | null;
+    setRenameModalTarget: React.Dispatch<React.SetStateAction<string | null>>;
+    name: string;
+    setName: React.Dispatch<React.SetStateAction<string>>;
+}
+
+const RenameFolderModal = ({ renameModalTarget, setRenameModalTarget, name, setName }: RenameFolderModalProps) => {
+    const { fragFolders, renameFragFolder } = useFragmentStore((state) => ({
+        fragFolders: state.folders,
+        renameFragFolder: state.renameFragFolder,
+    }));
+
+    return (
+        <Modal
+            opened={renameModalTarget !== null}
+            onClose={() => {
+                setRenameModalTarget(null);
+            }}
+            centered
+            title="Rename folder"
+        >
+            <TextInput
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                label="Folder Name"
+                placeholder="Custom Name"
+            />
+            <div className="w-full mt-4 flex justify-end">
+                <Button
+                    className="font-jbmono font-normal bg-blue-500 hover:bg-blue-600 transition-colors duration-100"
+                    size="xs"
+                    disabled={name === "" || fragFolders.some((folder) => folder.name === name)}
+                    onClick={() => {
+                        renameFragFolder(renameModalTarget!, name);
+                        setRenameModalTarget(null);
+                    }}
+                >
+                    Rename
+                </Button>
+            </div>
+        </Modal>
+    );
+};
+
+interface RenameFragModalProps {
+    renameModalTarget: string | null;
+    setRenameModalTarget: React.Dispatch<React.SetStateAction<string | null>>;
+    name: string;
+    setName: React.Dispatch<React.SetStateAction<string>>;
+}
+
+const RenameFragModal = ({ renameModalTarget, setRenameModalTarget, name, setName }: RenameFragModalProps) => {
+    const { fragments, renameFragment } = useFragmentStore((state) => ({
+        fragments: state.fragments,
+        renameFragment: state.renameFragment,
+    }));
+
+    return (
+        <Modal
+            opened={renameModalTarget !== null}
+            onClose={() => {
+                setRenameModalTarget(null);
+            }}
+            centered
+            title="Rename folder"
+        >
+            <TextInput
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                label="Fragment Name"
+                placeholder="Custom Name"
+            />
+            <div className="w-full mt-4 flex justify-end">
+                <Button
+                    className="font-jbmono font-normal bg-blue-500 hover:bg-blue-600 transition-colors duration-100"
+                    size="xs"
+                    disabled={name === "" || fragments.some((frag) => frag.fragment.name === name)}
+                    onClick={() => {
+                        renameFragment(renameModalTarget!, name);
+                        setRenameModalTarget(null);
+                    }}
+                >
+                    Rename
+                </Button>
+            </div>
+        </Modal>
+    );
+};
+
 interface AddFragModalProps {
     addFolderModal: boolean;
     setAddFolderModal: React.Dispatch<React.SetStateAction<boolean>>;
@@ -112,7 +202,6 @@ const AddFragmentModal = ({
                             filters: [{ name: "Excel file", extensions: ["xlsx"] }],
                         })) as string | undefined;
                         if (!filePath) return;
-                        console.log(filePath);
                         setNewFragmentData((prev) => ({ ...prev, file: filePath }));
                     }}
                 >
@@ -132,7 +221,7 @@ const AddFragmentModal = ({
                 <p className="text-sm font-medium">Select Folder</p>
                 <div className="w-full flex flex-col p-4 rounded-lg border border-slate-300 ">
                     {Object.keys(fragByFolder).map((folKey) => (
-                        <div className="w-full py-1">
+                        <div key={folKey} className="w-full py-1">
                             <Radio
                                 label={folKey}
                                 checked={newFragmentData.folder === folKey}
@@ -180,4 +269,4 @@ const AddFragmentModal = ({
     );
 };
 
-export { AddFolderModal, AddFragmentModal };
+export { AddFolderModal, AddFragmentModal, RenameFolderModal, RenameFragModal };

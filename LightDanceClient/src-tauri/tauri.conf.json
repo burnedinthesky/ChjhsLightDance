@@ -7,8 +7,8 @@
         "withGlobalTauri": false
     },
     "package": {
-        "productName": "LightDanceClient",
-        "version": "0.0.0"
+        "productName": "Chingshin Light Dance Manager",
+        "version": "1.0.0"
     },
     "tauri": {
         "allowlist": {
@@ -17,6 +17,13 @@
                 "all": true
             },
             "dialog": {
+                "all": true
+            },
+            "fs": {
+                "all": true,
+                "scope": ["**"]
+            },
+            "path": {
                 "all": true
             }
         },
@@ -29,7 +36,7 @@
                 "icons/icon.icns",
                 "icons/icon.ico"
             ],
-            "identifier": "com.tauri.dev",
+            "identifier": "com.chjhs.lightdance.mgr.dev",
             "targets": "all"
         },
         "security": {

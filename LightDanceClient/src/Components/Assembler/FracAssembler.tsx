@@ -1,10 +1,11 @@
+import { useState } from "react";
 import { Button, Modal, NumberInput, ScrollArea } from "@mantine/core";
+import { PlusCircleIcon } from "@heroicons/react/solid";
+import { PlusIcon } from "@heroicons/react/outline";
+
 import AsmFragBar from "./AsmFragBar";
 
-import { PlusCircleIcon } from "@heroicons/react/solid";
 import { useFragmentStore } from "../../Stores/Fragments";
-import { useState } from "react";
-import { PlusIcon } from "@heroicons/react/outline";
 
 interface FracAssemblerProps {
     selectedFrag: string | null;
@@ -38,6 +39,7 @@ const FracAssembler = ({ selectedFrag }: FracAssemblerProps) => {
                         {fragmentsByOrder.map((frag, i) => (
                             <>
                                 <button
+                                    key={`open-${frag.fragment.id}`}
                                     className={`w-full h-0.5 bg-slate-300 relative group cursor-pointer ${
                                         selectedFrag ? "hover:bg-blue-500" : "hover:bg-green-500"
                                     }`}
@@ -86,13 +88,14 @@ const FracAssembler = ({ selectedFrag }: FracAssemblerProps) => {
                     </div>
                 </ScrollArea>
             </div>
+
             <Modal
                 centered
                 opened={addEmptyFragModal !== null}
                 onClose={() => setAddEmptyFragModal(null)}
                 title="Create new empty fragment"
             >
-                <div className="flex  gap-3">
+                <div className="flex gap-3">
                     <NumberInput
                         className="w-1/2"
                         label="Minutes"

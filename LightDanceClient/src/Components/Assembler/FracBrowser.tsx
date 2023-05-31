@@ -1,11 +1,11 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
-import { Accordion, ActionIcon, Button, Modal, Radio, ScrollArea, TextInput } from "@mantine/core";
-import { ChevronDownIcon, FolderAddIcon, PlusIcon, PuzzleIcon, TrashIcon } from "@heroicons/react/outline";
+import { Accordion, ActionIcon, Button, Modal, ScrollArea } from "@mantine/core";
+import { ChevronDownIcon, FolderAddIcon, PencilAltIcon, PuzzleIcon, TrashIcon } from "@heroicons/react/outline";
 import FragBar from "./FragBar";
 
 import { useFragmentStore } from "../../Stores/Fragments";
-import { AddFolderModal, AddFragmentModal } from "./ConfModals";
+import { AddFolderModal, AddFragmentModal, RenameFolderModal } from "./ConfModals";
 
 interface FracBrowserProps {
     selectedFrag: string | null;
@@ -13,10 +13,11 @@ interface FracBrowserProps {
 }
 
 const FracBrowser = ({ selectedFrag, setSelectedFrag }: FracBrowserProps) => {
-    const { fragByFolder, fragFolders, deleteFragFolder } = useFragmentStore((state) => ({
+    const { loadFromLocalStorage, fragByFolder, fragFolders, deleteFragFolder } = useFragmentStore((state) => ({
         fragByFolder: state.getFragmentByFolder(),
         fragFolders: state.folders,
         deleteFragFolder: state.deleteFragFolder,
+        loadFromLocalStorage: state.loadFromLocalStorage,
     }));
 
     const [addFolderModal, setAddFolderModal] = useState<boolean>(false);
@@ -30,6 +31,13 @@ const FracBrowser = ({ selectedFrag, setSelectedFrag }: FracBrowserProps) => {
     }>({ name: "", folder: "", file: "" });
 
     const [deleteFolderModal, setDeleteFolderModal] = useState<string | null>(null);
+
+    const [renameModalTarget, setRenameModalTarget] = useState<string | null>(null);
+    const [renameModalName, setRenameModalName] = useState<string>("");
+
+    useEffect(() => {
+        loadFromLocalStorage();
+    }, []);
 
     return (
         <div className="w-full">
@@ -50,7 +58,18 @@ const FracBrowser = ({ selectedFrag, setSelectedFrag }: FracBrowserProps) => {
                             <Accordion.Item key={i} value={i.toString()}>
                                 <Accordion.Control>
                                     <div className="w-full flex justify-between items-center">
-                                        <h3 className="font-jbmono">{folKey}</h3>
+                                        <div className="flex gap-2 items-center">
+                                            <h3 className="font-jbmono">{folKey}</h3>
+                                            <ActionIcon
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setRenameModalName("");
+                                                    setRenameModalTarget(folKey);
+                                                }}
+                                            >
+                                                <PencilAltIcon className="w-4 text-blue-700" />
+                                            </ActionIcon>
+                                        </div>
                                         <ActionIcon
                                             className="mr-2.5"
                                             onClick={(e) => {
@@ -125,6 +144,13 @@ const FracBrowser = ({ selectedFrag, setSelectedFrag }: FracBrowserProps) => {
                 setAddFragmentModal={setAddFragmentModal}
                 newFragmentData={newFragmentData}
                 setNewFragmentData={setNewFragmentData}
+            />
+
+            <RenameFolderModal
+                name={renameModalName}
+                setName={setRenameModalName}
+                renameModalTarget={renameModalTarget}
+                setRenameModalTarget={setRenameModalTarget}
             />
 
             <Modal

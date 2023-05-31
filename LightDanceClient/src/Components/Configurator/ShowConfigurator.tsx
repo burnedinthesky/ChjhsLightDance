@@ -1,35 +1,51 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@mantine/core";
 import { open } from "@tauri-apps/api/dialog";
 
+import { exists, createDir, readTextFile, writeTextFile, BaseDirectory } from "@tauri-apps/api/fs";
+
+import { appDataDir, join } from "@tauri-apps/api/path";
+import { generateChecksum } from "../../lib/checkSum";
+
 const ShowConfigurator = () => {
-    const [showConfig, setShowConfig] = useState<string | null>(null);
+    const [showConfigState, setShowConfigState] = useState<"Up to date" | "Outdated" | "Not compiled" | null>(null);
     const [audioFile, setAudioFile] = useState<string | null>(null);
+
+    useEffect(() => {
+        (async () => {
+            if (!(await exists(await join(await appDataDir(), "compiled_dance.json")))) {
+                setShowConfigState("Not compiled");
+                return;
+            }
+            const compiledDance = JSON.parse(await readTextFile("compiled_dance.json", { dir: BaseDirectory.AppData }));
+            const sourceDance = JSON.parse(await readTextFile("fragments.json", { dir: BaseDirectory.AppData }));
+            if (compiledDance.uuid !== sourceDance.uuid) setShowConfigState("Outdated");
+            else setShowConfigState("Up to date");
+        })();
+    }, []);
 
     return (
         <div className="w-full h-40 py-2">
             <div className="flex justify-between items-center font-jbmono my-3">
-                <p>Lighting Configuration: {showConfig ? showConfig : "Not selected"}</p>
-                <Button
-                    className="font-jbmono bg-blue-500 hover:bg-blue-600 transition-colors duration-100"
-                    size="xs"
-                    onClick={async () => {
-                        const filePath = (await open({
-                            multiple: false,
-                            filters: [{ name: "Json file", extensions: ["json"] }],
-                        })) as string;
-
-                        if (!filePath) return;
-                        let splitPath = filePath.split("\\");
-                        splitPath = [
-                            ...splitPath.slice(0, splitPath.length - 1),
-                            ...splitPath[splitPath.length - 1].split("/"),
-                        ];
-                        setShowConfig(splitPath[splitPath.length - 1]);
-                    }}
-                >
-                    Select
-                </Button>
+                <p>Lighting Configuration: {showConfigState ? showConfigState : "Loading"}</p>
+                {showConfigState !== "Up to date" && (
+                    <Button
+                        className="font-jbmono bg-blue-500 hover:bg-blue-600 transition-colors duration-100"
+                        size="xs"
+                        onClick={async () => {
+                            const data = {
+                                uuid: JSON.parse(await readTextFile("fragments.json", { dir: BaseDirectory.AppData }))
+                                    .uuid,
+                            };
+                            await writeTextFile("compiled_dance.json", JSON.stringify(data), {
+                                dir: BaseDirectory.AppData,
+                            });
+                            setShowConfigState("Up to date");
+                        }}
+                    >
+                        Compile
+                    </Button>
+                )}
             </div>
             <div className="flex justify-between items-center font-jbmono my-3">
                 <p>Audio: {audioFile ? audioFile : "Not selected"}</p>

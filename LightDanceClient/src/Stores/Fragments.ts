@@ -1,10 +1,26 @@
 import { create } from "zustand";
 import { v4 as uuidv4 } from "uuid";
 import { Fragment, FragmentFolder, UIFragment } from "../types/Frags";
+import {
+    copyFile,
+    removeFile,
+    exists,
+    createDir,
+    readTextFile,
+    writeTextFile,
+    BaseDirectory,
+} from "@tauri-apps/api/fs";
+import { appDataDir, join } from "@tauri-apps/api/path";
+
+import { notifications } from "@mantine/notifications";
 
 export const useFragmentStore = create<{
     fragments: UIFragment[];
     folders: FragmentFolder[];
+
+    loadFromLocalStorage(): Promise<void>;
+    saveToLocalStorage(): void;
+
     createFragment(fragName: string, fragPath: string, folder: string, order?: number[]): void;
     createEmptyFragment(duration: number, order: number[]): void;
     deleteFragment(fragID: string): void;
@@ -12,6 +28,7 @@ export const useFragmentStore = create<{
     addFragmentOrder(fragID: string, order: number): void;
     swapFragmentOrder(order1: number, order2: number): void;
     removeFragmentOrder(fragmentID: string, orders?: number[]): void;
+    renameFragment(fragmentID: string, newName: string): void;
     compressFragmentOrder(): void;
 
     getFragmentByFolder(): Record<string, Fragment[]>;
@@ -19,10 +36,58 @@ export const useFragmentStore = create<{
     getMaxFragOrder(): number;
 
     createFragFolder(folderName: string): void;
+    renameFragFolder(folderName: string, newName: string): void;
     deleteFragFolder(folderName: string): void;
 }>((set, get) => ({
     fragments: [],
     folders: [],
+    async loadFromLocalStorage() {
+        if (!(await exists("fragments.json", { dir: BaseDirectory.AppData })))
+            await writeTextFile("fragments.json", JSON.stringify({ fragments: [], folders: [] }), {
+                dir: BaseDirectory.AppData,
+            });
+
+        const localData = await JSON.parse(await readTextFile("fragments.json", { dir: BaseDirectory.AppData }));
+        const loadedFolders: FragmentFolder[] = (localData.folders as FragmentFolder[]).map((fol) => ({
+            id: fol.id,
+            name: fol.name,
+        }));
+        set((state) => ({
+            ...state,
+            folders: loadedFolders,
+        }));
+        const loadedFragments: UIFragment[] = (localData.fragments as UIFragment[]).map((frag) => ({
+            ...frag,
+            folder:
+                frag.folder !== null
+                    ? (() => {
+                          const ret = get().folders.find((fol) => fol.id === (frag.folder as FragmentFolder).id);
+                          if (!ret) throw new Error("Folder not found");
+                          return ret;
+                      })()
+                    : null,
+        }));
+        set((state) => ({
+            ...state,
+            fragments: loadedFragments,
+        }));
+    },
+    saveToLocalStorage() {
+        const data = {
+            fragments: get().fragments,
+            folders: get().folders,
+            uuid: uuidv4(),
+        };
+
+        writeTextFile("fragments.json", JSON.stringify(data), { dir: BaseDirectory.AppData }).catch((err) => {
+            console.log(err);
+            notifications.show({
+                title: "Error",
+                message: "Auto-save failed, will try again next edit",
+                color: "red",
+            });
+        });
+    },
     createFragment(fragName: string, fragPath: string, folder: string, order?: number[]) {
         if (!get().folders.find((f) => f.name === folder)) throw new Error("Folder not found");
         const newFragment: UIFragment = {
@@ -36,12 +101,26 @@ export const useFragmentStore = create<{
             order: [],
             empty: false,
         };
+
+        (async () => {
+            if (!(await exists("frag_excels/", { dir: BaseDirectory.AppData }))) {
+                await createDir("frag_excels", { dir: BaseDirectory.AppData, recursive: true });
+            }
+            await copyFile(fragPath, await join("frag_excels", `frag-${newFragment.fragment.id}.xlsx`), {
+                dir: BaseDirectory.AppData,
+            });
+            return await join(await appDataDir(), "frag_excels", `frag-${newFragment.fragment.id}.xlsx`);
+        })().then((path: string) => {
+            newFragment.fragment.filePath = path;
+        });
+
         set((state) => ({
             ...state,
             fragments: [...state.fragments, newFragment],
         }));
         if (!order) return;
         order.forEach((o) => get().addFragmentOrder(newFragment.fragment.id, o));
+        get().saveToLocalStorage();
     },
     createEmptyFragment(duration: number, order: number[]) {
         const newEmptyFragment: UIFragment = {
@@ -61,13 +140,22 @@ export const useFragmentStore = create<{
         }));
 
         order.forEach((o) => get().addFragmentOrder(newEmptyFragment.fragment.id, o));
+        get().saveToLocalStorage();
     },
     deleteFragment(fragID: string) {
-        set((state) => ({
-            ...state,
-            fragments: state.fragments.filter((frag) => frag.fragment.id !== fragID),
-        }));
+        if (!get().fragments.find((f) => f.fragment.id === fragID)) throw new Error("Fragment not found");
+        (async () => {
+            await removeFile(`frag_excels/frag-${fragID}.xlsx`, {
+                dir: BaseDirectory.AppData,
+            });
+        })().then(() => {
+            set((state) => ({
+                ...state,
+                fragments: state.fragments.filter((frag) => frag.fragment.id !== fragID),
+            }));
+        });
         get().compressFragmentOrder();
+        get().saveToLocalStorage();
     },
 
     addFragmentOrder(fragID: string, order: number) {
@@ -85,6 +173,7 @@ export const useFragmentStore = create<{
             ),
         }));
         get().compressFragmentOrder();
+        get().saveToLocalStorage();
     },
     swapFragmentOrder(order1: number, order2: number) {
         set((state) => {
@@ -103,6 +192,7 @@ export const useFragmentStore = create<{
                 fragments: newFrag,
             };
         });
+        get().saveToLocalStorage();
     },
     removeFragmentOrder(fragID: string, orders?: number[]) {
         if (get().fragments.find((frag) => frag.fragment.id === fragID)?.empty) {
@@ -122,6 +212,16 @@ export const useFragmentStore = create<{
             })),
         }));
         get().compressFragmentOrder();
+        get().saveToLocalStorage();
+    },
+    renameFragment(fragmentID: string, newName: string) {
+        set((state) => ({
+            ...state,
+            fragments: state.fragments.map((frag) =>
+                frag.fragment.id === fragmentID ? { ...frag, fragment: { ...frag.fragment, name: newName } } : frag
+            ),
+        }));
+        get().saveToLocalStorage();
     },
     compressFragmentOrder() {
         set((state) => {
@@ -148,7 +248,8 @@ export const useFragmentStore = create<{
         return folders;
     },
     getFragmentByOrder() {
-        console.log(get().fragments);
+        // console.log(get().loadFromLocalStorage());
+
         const ret: { o: number; frag: UIFragment }[] = [];
         get().fragments.forEach((frag) => {
             frag.order.forEach((order) => {
@@ -178,14 +279,29 @@ export const useFragmentStore = create<{
                 },
             ],
         }));
+        get().saveToLocalStorage();
+    },
+    renameFragFolder(folderName: string, newName: string) {
+        const folder = get().folders.find((fol) => fol.name === folderName);
+        if (!folder) throw new Error("Folder not found");
+        set((state) => ({
+            ...state,
+            folders: state.folders.map((fol) => (fol.id === folder.id ? { ...fol, name: newName } : fol)),
+        }));
+        get().saveToLocalStorage();
     },
     deleteFragFolder(folderName: string) {
         const folder = get().folders.find((fol) => fol.name === folderName);
         if (!folder) throw new Error("Folder not found");
+        get().fragments.forEach((frag) => {
+            if (frag.folder?.id !== folder.id) return;
+            get().deleteFragment(frag.fragment.id);
+        });
         set((state) => ({
             ...state,
             fragments: state.fragments.filter((frag) => frag.folder?.id !== folder.id),
             folders: state.folders.filter((fol) => fol.id !== folder.id),
         }));
+        get().saveToLocalStorage();
     },
 }));

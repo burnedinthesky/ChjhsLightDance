@@ -1,16 +1,25 @@
-export type BoardStatus = "connected" | "processing";
+import { z } from "zod";
 
-export type LightingGroupData = {
-    id: string;
-    givenName: string;
-    lights: string[];
-};
+export const BoardStatusZod = z.enum(["connected", "processing", "disconnected"]);
 
-export type BoardData = {
-    id: string;
-    name: string;
-    status: BoardStatus;
-    ip: string;
-    assisgnedId: string;
-    lightGroups: LightingGroupData[];
-};
+export type BoardStatus = z.infer<typeof BoardStatusZod>;
+
+export const LightGroupDataZod = z.object({
+    id: z.string(),
+    name: z.string(),
+    assignedNum: z.number(),
+    lights: z.array(z.string()),
+});
+
+export type LightingGroupData = z.infer<typeof LightGroupDataZod>;
+
+export const BoardDataZod = z.object({
+    id: z.string(),
+    name: z.string(),
+    status: BoardStatusZod,
+    ip: z.string(),
+    assignedNum: z.number(),
+    lightGroups: z.array(LightGroupDataZod),
+});
+
+export type BoardData = z.infer<typeof BoardDataZod>;
