@@ -52,7 +52,7 @@ export const useBoardStore = create<{
             });
 
         const localData = await JSON.parse(await readTextFile("board_configs.json", { dir: BaseDirectory.AppData }));
-        console.log(localData);
+
         const result = z.object({ boards: z.array(BoardDataZod), audio: z.string().nullable() }).safeParse(localData);
         if (!result.success) {
             await writeTextFile("board_configs.json", JSON.stringify({ boards: [], audio: null }), {

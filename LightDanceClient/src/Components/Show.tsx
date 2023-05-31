@@ -35,6 +35,7 @@ const ShowDisplay = ({ showId, setShowId }: ShowDisplayProps) => {
             }
         >
     >({});
+    const [showCompleted, setShowComplete] = useState<boolean>(false);
 
     const startTime = useRef<Date | null>(null);
     const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -105,11 +106,12 @@ const ShowDisplay = ({ showId, setShowId }: ShowDisplayProps) => {
         <Modal
             opened={true}
             onClose={() => {
-                if (!showInitialized) setShowId(null);
-                showNotification({
-                    message: "Show is in progress, terminate the show to close modal!",
-                    autoClose: 10000,
-                });
+                if (showCompleted) setShowId(null);
+                else
+                    showNotification({
+                        message: "Show is in progress, terminate the show to close modal!",
+                        autoClose: 10000,
+                    });
             }}
             classNames={{ title: "font-semibold font-jbmono", content: "px-4" }}
             size="lg"
@@ -121,7 +123,9 @@ const ShowDisplay = ({ showId, setShowId }: ShowDisplayProps) => {
                     {showInitialized ? (
                         <>
                             <p>
-                                {timeUntilStart !== null
+                                {showCompleted
+                                    ? "Show completed"
+                                    : timeUntilStart !== null
                                     ? `Time until show start: ${timeUntilStart} msecs`
                                     : "Show in progress"}
                             </p>
@@ -141,43 +145,62 @@ const ShowDisplay = ({ showId, setShowId }: ShowDisplayProps) => {
                     )}
                 </div>
             </div>
-            <audio className={`w-full mt-4`} ref={audioRef} controls={showInitialized} />
+            <audio
+                className={`w-full mt-4`}
+                ref={audioRef}
+                controls={showInitialized}
+                onEnded={() => {
+                    setShowComplete(true);
+                }}
+            />
             <div className="w-full flex justify-end gap-4 mt-4">
-                <Popover
-                    width={300}
-                    position="bottom"
-                    withArrow
-                    shadow="md"
-                    classNames={{ dropdown: "font-jbmono text-sm" }}
-                >
-                    <Popover.Target>
-                        <Button
-                            className=" font-jbmono bg-red-500 hover:bg-red-600 transition-colors duration-100"
-                            size="xs"
-                        >
-                            Terminate
-                        </Button>
-                    </Popover.Target>
-                    <Popover.Dropdown>
-                        <p>Are you sure you want to terminate the show?</p>
-
-                        <div className="mt-3 w-full flex justify-end">
+                {showCompleted ? (
+                    <Button
+                        className=" font-jbmono bg-blue-500 hover:bg-blue-600 transition-colors duration-100"
+                        size="xs"
+                        onClick={() => {
+                            setShowId(null);
+                        }}
+                    >
+                        Close
+                    </Button>
+                ) : (
+                    <Popover
+                        width={300}
+                        position="bottom"
+                        withArrow
+                        shadow="md"
+                        classNames={{ dropdown: "font-jbmono text-sm" }}
+                    >
+                        <Popover.Target>
                             <Button
                                 className=" font-jbmono bg-red-500 hover:bg-red-600 transition-colors duration-100"
                                 size="xs"
-                                onClick={() => {
-                                    showNotification({
-                                        message: "Show terminated by user",
-                                        color: "red",
-                                    });
-                                    setShowId(null);
-                                }}
                             >
                                 Terminate
                             </Button>
-                        </div>
-                    </Popover.Dropdown>
-                </Popover>
+                        </Popover.Target>
+                        <Popover.Dropdown>
+                            <p>Are you sure you want to terminate the show?</p>
+
+                            <div className="mt-3 w-full flex justify-end">
+                                <Button
+                                    className=" font-jbmono bg-red-500 hover:bg-red-600 transition-colors duration-100"
+                                    size="xs"
+                                    onClick={() => {
+                                        showNotification({
+                                            message: "Show terminated by user",
+                                            color: "red",
+                                        });
+                                        setShowId(null);
+                                    }}
+                                >
+                                    Terminate
+                                </Button>
+                            </div>
+                        </Popover.Dropdown>
+                    </Popover>
+                )}
             </div>
         </Modal>
     );

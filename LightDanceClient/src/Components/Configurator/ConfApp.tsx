@@ -17,7 +17,7 @@ const ConfApp = () => {
 
     const [startShowID, setStartShowID] = useState<string | null>(null);
 
-    const { boards, addBoard, loadFromLocalStorage } = useBoardStore((state) => ({
+    const { boards, loadFromLocalStorage } = useBoardStore((state) => ({
         boards: state.boards,
         addBoard: state.addBoard,
         loadFromLocalStorage: state.loadFromLocalStorage,
@@ -37,21 +37,14 @@ const ConfApp = () => {
                 });
             });
 
-        loadFromLocalStorage()
-            .then(() => {
-                if (boards.length !== 0) return;
-                // for (let i = 0; i < 7; i++) {
-                //     addBoard(randomId(), "127.0.0.1");
-                // }
-            })
-            .catch(() => {
-                showNotification({
-                    title: "Error",
-                    message: "Failed to load boards from local storage, reload the app to try again.",
-                    color: "red",
-                    autoClose: false,
-                });
+        loadFromLocalStorage().catch(() => {
+            showNotification({
+                title: "Error",
+                message: "Failed to load boards from local storage, reload the app to try again.",
+                color: "red",
+                autoClose: false,
             });
+        });
     }, []);
 
     return (
