@@ -5,12 +5,18 @@
 #include <string>
 #include <vector>
 
+#include "globals.h"
+#include "json.hpp"
+
+#include <iostream>
+
 #ifdef _WIN32
 #include <Windows.h>
 #else
 #include <unistd.h>
 #endif
 
+using json = nlohmann::json;
 
 class LightBar {
   std::string hardwareId;
@@ -25,13 +31,12 @@ public:
 
   bool getState() { return powered; }
 
-  void setPower(bool power) {
-      powered = power;
-  }
+  void setPower(bool power) { powered = power; }
 
   void setOpacity(int level) {
-    if (level < 0 || level > 10) throw std::invalid_argument("Power opacity must be between levels 0 to 10");
-
+    if (level < 0 || level > 10)
+      throw std::invalid_argument(
+          "Power opacity must be between levels 0 to 10");
   }
 };
 
@@ -40,7 +45,7 @@ class LightingGroup {
 
 public:
   LightingGroup(std::vector<std::string> hardwareIds,
-                std::map<int, LightingGroup*> LightBars) {
+                std::map<int, LightingGroup *> LightBars) {
     int prevId = LightBars.empty() ? 0 : LightBars.rbegin()->first;
     for (auto hwId : hardwareIds) {
       LightBar tmp = LightBar(hwId, ++prevId);
@@ -74,5 +79,33 @@ public:
     setPower(false);
   }
 };
+
+namespace lgc {
+void initializeLightingGroups(
+    std::map<std::string, LightingGroup *> &LightingGroups,
+    std::map<int, LightingGroup *> &LBCorrespondingLG, json &parsedConfig) {
+
+  for (auto &[key, value] : parsedConfig.items()) {
+    std::cout << "Board: " << key << '\n';
+
+    if (!value.contains("groups"))
+      throw std::invalid_argument(
+          "Config file does not contain a \"groups\" array");
+    for (const auto &group : value["groups"]) {
+      std::cout << "Group ID: " << group["id"] << '\n';
+      LightingGroups[group["id"].get<std::string>()] = new LightingGroup(
+          group["pins"].get<std::vector<std::string>>(), LBCorrespondingLG);
+    }
+  }
+}
+
+void resetLightingGroups(
+    std::map<std::string, LightingGroup *> &LightingGroups) {
+  for (auto group : LightingGroups)
+    delete group.second;
+
+  LightingGroups.clear();
+}
+} // namespace lgc
 
 #endif

@@ -1,38 +1,49 @@
-#include <vector>
-#include <string>
+#include <chrono>
 #include <queue>
+#include <string>
+#include <vector>
 
-#include "lightGroups.h"
 #include "commands.h"
+#include "globals.h"
 #include "json.hpp"
+#include "lightGroups.h"
+#include "wsCommands.h"
 
-//For testing & debug purposes
-#include <iostream>
+// For testing & debug purposes
 #include <fstream>
+#include <iostream>
 
 using json = nlohmann::json;
 
-std::map<std::string, LightingGroup*> LightingGroups;
-std::map<int, LightingGroup*> LBCorrespondingLG;
+std::map<std::string, LightingGroup *> LightingGroups;
+std::map<int, LightingGroup *> LBCorrespondingLG;
 
-void timedTrigger(int time) {
+std::queue<std::pair<int, ltc::LGCommand *>> Commands;
 
-}
+enum class BoardStatus { idle, processing, playing };
 
-void initializeLightingGroups(json groups) {
-  for (auto& group : groups) {
-    LightingGroups[group["id"].get<std::string>()] = new LightingGroup(
-      group["pins"].get<std::vector<std::string>>(),
-      LBCorrespondingLG
-    );
+BoardStatus boardStatus;
+
+ServerOffset serverOffset;
+long long showStartTime;
+
+void showLoop() {
+  if (Commands.empty()) {
+    boardStatus = BoardStatus::idle;
+    return;
   }
-}
 
-void resetLightingGroups() {
-    for (auto group : LightingGroups) {
-        delete group.second;
-    }
-    LightingGroups.clear();
+  auto currentTime = std::chrono::high_resolution_clock::now();
+  auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(
+                          currentTime.time_since_epoch())
+                          .count();
+  milliseconds -= showStartTime;
+
+  while (Commands.front().first < milliseconds) {
+    Commands.front().second->executeCommand();
+    delete Commands.front().second;
+    Commands.pop();
+  }
 }
 
 int main() {
@@ -44,17 +55,18 @@ int main() {
   sdConfig >> danceJson;
   sdConfig.close();
 
-  initializeLightingGroups(configJson["groups"]);
+  lgc::initializeLightingGroups(LightingGroups, LBCorrespondingLG, configJson);
+
+  std::cout << "Initialized lighting groups:" << std::endl;
   for (auto it : LightingGroups) {
     std::cout << it.first << std::endl;
   }
 
-  std::queue<std::pair<int, ltc::LGCommand*>> Commands = ltc::parseJSON(danceJson, LightingGroups);
-  while (!Commands.empty()) {
-    std::cout << Commands.front().first << std::endl;
-    delete Commands.front().second;
-    Commands.pop();
+  Commands = ltc::parseJSON(danceJson, LightingGroups);
+
+  while (boardStatus == BoardStatus::playing) {
+    showLoop();
   }
 
-
+  lgc::resetLightingGroups(LightingGroups);
 }
