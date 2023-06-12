@@ -23,6 +23,7 @@ export type BridgerMessageType = z.infer<typeof BridgerMessageZod>;
 
 export const BoardFlashData = z.object({
     type: z.enum(["esp", "rpi"]),
+    boardNumber: z.number(),
     lgConfig: z.array(
         z.object({
             id: z.string(),

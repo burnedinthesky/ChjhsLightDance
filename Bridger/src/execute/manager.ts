@@ -8,7 +8,6 @@ export const ExecuteManagerMessage = (
 ) => {
     if (message.type === "flash") {
         const objectData = JSON.parse(message.payload);
-        console.log(objectData);
         const data = FlashData.parse(objectData);
 
         Object.keys(data).forEach((addr) => {
@@ -17,7 +16,7 @@ export const ExecuteManagerMessage = (
                 payload: objectData[addr],
             });
         });
-    } else if (message.type === "callibrate") {
+    } else if (message.type === "calibrate") {
         const [target, addr, time] = message.payload.split(";");
         const callibrateZod = z.object({
             target: z.enum(["esp", "rpi"]),

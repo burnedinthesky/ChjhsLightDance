@@ -17,6 +17,11 @@ export const ExecuteClientMessage = (
                 type: "notify",
                 payload: `${clientId};show;terminated`,
             });
+        } else if (message.payload === "showStart") {
+            sendBridgerMessage("manager", null, {
+                type: "notify",
+                payload: `${clientId};show;start`,
+            });
         }
     } else if (message.type === "reply") {
         if (message.payload === "callibrate") {
@@ -28,11 +33,6 @@ export const ExecuteClientMessage = (
             sendBridgerMessage("manager", null, {
                 type: "notify",
                 payload: `${clientId};status;done`,
-            });
-        } else if (message.payload === "showStart") {
-            sendBridgerMessage("manager", null, {
-                type: "notify",
-                payload: `${clientId};show;start`,
             });
         }
     } else if (message.type === "throw") {
