@@ -32,10 +32,13 @@ function sendBridgerMessage(target: BoardTypes, ids: string[] | null, message: B
         else managerMsgQueue.push(jsonMessage);
         return;
     }
-    const targetInstances = target == "rpi" ? rpiInstances : espInstances;
-    const targets = ids ?? Object.keys(targetInstances);
+    // const targetInstances = target == "rpi" ? rpiInstances : espInstances;
+    const targets = ids ?? Object.keys(rpiInstances);
+    console.log(rpiInstances);
+    console.log(ids);
+    console.log(targets);
     targets.forEach((id) => {
-        targetInstances[id].send(JSON.stringify(jsonMessage));
+        rpiInstances[id].send(JSON.stringify(jsonMessage));
     });
 }
 
@@ -91,16 +94,22 @@ wss.on("connection", (ws: WebSocket) => {
             try {
                 ExecuteManagerMessage(dataObject, sendBridgerMessage);
             } catch (e) {
-                sendBridgerError(JSON.stringify(e), undefined, ws);
+                console.log(e);
+                let err_message = "Unknown error";
+                if (e instanceof Error) err_message = e.message;
+                sendBridgerError(JSON.stringify(err_message), undefined, ws);
             }
             return;
         }
+
+        console.log(dataObject);
 
         if (dataObject.type === "initialize") {
             const [apiKey, clientMacAddr] = dataObject.payload.split(";");
             if (apiKey !== process.env.CLIENT_API_KEY || !macAddrRegex.test(clientMacAddr)) {
                 return sendBridgerError("Failed to establish client status, please retry", undefined, ws);
             }
+            console.log(clientMacAddr);
             if (dataObject.source === "rpi") rpiInstances[clientMacAddr] = ws;
             else espInstances[clientMacAddr] = ws;
 
@@ -115,11 +124,15 @@ wss.on("connection", (ws: WebSocket) => {
         try {
             ExecuteClientMessage(dataObject, sendBridgerMessage, clientAddr);
         } catch (e) {
-            sendBridgerError(JSON.stringify(e), undefined, ws);
+            console.log(e);
+            let err_message = "Unknown error";
+            if (e instanceof Error) err_message = e.message;
+            sendBridgerError(JSON.stringify(err_message), undefined, ws);
         }
     });
 
     ws.on("close", () => {
+        console.log("Shit closed");
         if (managerInstance === ws) {
             managerInstance = null;
             sendBridgerMessage("rpi", null, {

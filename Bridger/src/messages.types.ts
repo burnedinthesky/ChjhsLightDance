@@ -29,7 +29,7 @@ export const BoardFlashData = z.object({
             id: z.string(),
             name: z.string(),
             assignedNum: z.number(),
-            lights: z.array(z.string()),
+            lights: z.array(z.number()),
         })
     ),
     lightConfig: z.record(z.string(), z.array(z.record(z.string(), z.string()))),

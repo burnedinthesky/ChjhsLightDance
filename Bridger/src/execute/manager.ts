@@ -12,7 +12,7 @@ export const ExecuteManagerMessage = (
 
         Object.keys(data).forEach((addr) => {
             sendBridgerMessage(data[addr].type, [addr], {
-                type: "notify",
+                type: "flash",
                 payload: objectData[addr],
             });
         });

@@ -9,7 +9,7 @@ def parse_command(target_lg, command):
     match command_type:
         case 'setPower':
             return lambda: target_lg.set_power(int(params[0]))
-        case 'setOpacity':
+        case 'setBrightness':
             return lambda: target_lg.set_opacity(int(params[0]))
         case _:
             raise ValueError('Invalid command type')
@@ -24,11 +24,11 @@ def parse_hardware_config(config, lighting_groups):
     
 def parse_light_config(config, lighting_groups):
     temp_command = []
-    for group in config:
-        for event in config['group']:
-            time, command = float(event.keys()[0]), event.values()[0]
-            temp_command.append((time, parse_command(lighting_groups[group], command)))
-    temp_command.sort()
+    for groupId in config:
+        for event in config[groupId]:
+            time, command = float(list(event.keys())[0]), list(event.values())[0]
+            temp_command.append((time, parse_command(lighting_groups[groupId], command)))
+    temp_command.sort(key=lambda x: x[0]) 
 
     cmdQueue = Queue(len(temp_command))
     for command in temp_command:
