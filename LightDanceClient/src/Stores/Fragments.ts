@@ -143,17 +143,24 @@ export const useFragmentStore = create<{
         get().saveToLocalStorage();
     },
     deleteFragment(fragID: string) {
-        if (!get().fragments.find((f) => f.fragment.id === fragID)) throw new Error("Fragment not found");
-        (async () => {
-            await removeFile(`frag_excels/frag-${fragID}.xlsx`, {
-                dir: BaseDirectory.AppData,
-            });
-        })().then(() => {
+        const frag = get().fragments.find((f) => f.fragment.id === fragID);
+        if (!frag) throw new Error("Fragment not found");
+        if (frag.empty)
             set((state) => ({
                 ...state,
                 fragments: state.fragments.filter((frag) => frag.fragment.id !== fragID),
             }));
-        });
+        else
+            (async () => {
+                await removeFile(`frag_excels/frag-${fragID}.xlsx`, {
+                    dir: BaseDirectory.AppData,
+                });
+            })().then(() => {
+                set((state) => ({
+                    ...state,
+                    fragments: state.fragments.filter((frag) => frag.fragment.id !== fragID),
+                }));
+            });
         get().compressFragmentOrder();
         get().saveToLocalStorage();
     },

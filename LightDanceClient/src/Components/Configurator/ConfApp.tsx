@@ -6,24 +6,37 @@ import ShowConfigurator from "./ShowConfigurator";
 
 import { useBoardStore } from "../../Stores/Boards";
 import { showNotification } from "@mantine/notifications";
-import { randomId } from "@mantine/hooks";
+
 import ShowDisplay from "../Show";
 
 import { v4 as uuidv4 } from "uuid";
+import { LoadingOverlay } from "@mantine/core";
+import { useWSConvStore } from "../../Stores/WSConnection";
+import { sendWSMessage } from "../../lib/wsPortal";
 
-const ConfApp = () => {
+interface ConfAppProps {
+    appMode: string;
+}
+
+const ConfApp = ({ appMode }: ConfAppProps) => {
     const [lANIp, setLANIp] = useState<string>("Loading");
     const [focusedBoard, setFocusedBoard] = useState<string | null>(null);
 
     const [startShowID, setStartShowID] = useState<string | null>(null);
 
-    const { boards, loadFromLocalStorage } = useBoardStore((state) => ({
-        boards: state.boards,
-        addBoard: state.addBoard,
+    const { loadFromLocalStorage } = useBoardStore((state) => ({
         loadFromLocalStorage: state.loadFromLocalStorage,
     }));
 
+    const { refreshedBoard, setRefreshedBoard } = useWSConvStore((state) => ({
+        refreshedBoard: state.refreshedBoard,
+        setRefreshedBoard: state.setRefreshedBoard,
+    }));
+
     useEffect(() => {
+        if (appMode !== "conf") return;
+
+        setRefreshedBoard(false);
         invoke("get_lan_ip")
             .then((ret) => {
                 setLANIp(ret as string);
@@ -37,15 +50,19 @@ const ConfApp = () => {
                 });
             });
 
-        loadFromLocalStorage().catch(() => {
-            showNotification({
-                title: "Error",
-                message: "Failed to load boards from local storage, reload the app to try again.",
-                color: "red",
-                autoClose: false,
+        loadFromLocalStorage()
+            .then(() => {
+                sendWSMessage("refresh", "rpi");
+            })
+            .catch(() => {
+                showNotification({
+                    title: "Error",
+                    message: "Failed to load boards from local storage, reload the app to try again.",
+                    color: "red",
+                    autoClose: false,
+                });
             });
-        });
-    }, []);
+    }, [appMode]);
 
     return (
         <div className="h-screen w-full py-10 px-12 font-jbmono">
@@ -56,7 +73,8 @@ const ConfApp = () => {
                     <div className="w-full bg-zinc-50 border border-zinc-400 rounded-lg flex px-7 h-12 items-center">
                         <div>Server IP: {lANIp}</div>
                     </div>
-                    <div className="w-full bg-zinc-50 border border-zinc-400 rounded-lg px-2">
+                    <div className="relative w-full bg-zinc-50 border border-zinc-400 rounded-lg px-2">
+                        <LoadingOverlay visible={!refreshedBoard} loaderProps={{ size: "sm" }} />
                         <BoardAccordion focused={focusedBoard} setFocused={setFocusedBoard} />
                     </div>
                     <h2 className="text-xl">Performance Configuration</h2>

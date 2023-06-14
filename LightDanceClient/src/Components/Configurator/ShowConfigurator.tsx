@@ -6,6 +6,8 @@ import { exists, readTextFile, writeTextFile, BaseDirectory } from "@tauri-apps/
 
 import { appDataDir, join } from "@tauri-apps/api/path";
 import { useBoardStore } from "../../Stores/Boards";
+import { CompileDance, FlashShowData } from "../../lib/showData";
+import { showNotification } from "@mantine/notifications";
 
 interface ShowConfiguratorProps {
     startShow: () => void;
@@ -13,15 +15,17 @@ interface ShowConfiguratorProps {
 
 const ShowConfigurator = ({ startShow }: ShowConfiguratorProps) => {
     const [showConfigState, setShowConfigState] = useState<"Up to date" | "Outdated" | "Not compiled" | null>(null);
-    const { audioFile, setAudioFile, deleteAudioFile, editSinceLastFlash, resetEditSinceLastFlash } = useBoardStore(
-        (state) => ({
+    const [flashing, setFlashing] = useState<boolean>(false);
+
+    const { boards, audioFile, setAudioFile, deleteAudioFile, editSinceLastFlash, resetEditSinceLastFlash } =
+        useBoardStore((state) => ({
+            boards: state.boards,
             audioFile: state.audioFile,
             setAudioFile: state.setAudio,
             deleteAudioFile: state.deleteAudio,
             editSinceLastFlash: state.editSinceLastFlash,
             resetEditSinceLastFlash: state.resetEditSinceLastFlash,
-        })
-    );
+        }));
 
     useEffect(() => {
         (async () => {
@@ -44,15 +48,16 @@ const ShowConfigurator = ({ startShow }: ShowConfiguratorProps) => {
                     <Button
                         className="font-jbmono bg-blue-500 hover:bg-blue-600 transition-colors duration-100"
                         size="xs"
-                        onClick={async () => {
-                            const data = {
-                                uuid: JSON.parse(await readTextFile("fragments.json", { dir: BaseDirectory.AppData }))
-                                    .uuid,
-                            };
-                            await writeTextFile("compiled_dance.json", JSON.stringify(data), {
-                                dir: BaseDirectory.AppData,
-                            });
-                            setShowConfigState("Up to date");
+                        onClick={() => {
+                            CompileDance()
+                                .then(() => setShowConfigState("Up to date"))
+                                .catch((e) =>
+                                    showNotification({
+                                        title: "Dance Compilation Error",
+                                        message: e.toString(),
+                                        color: "red",
+                                    })
+                                );
                         }}
                     >
                         Compile
@@ -97,10 +102,29 @@ const ShowConfigurator = ({ startShow }: ShowConfiguratorProps) => {
                 <p>Actions</p>
                 <div className="flex gap-4 items-center">
                     <Button
+                        loading={flashing}
                         className="w-[73px] font-jbmono bg-blue-500 hover:bg-blue-600 transition-colors duration-100"
                         size="xs"
-                        onClick={() => {
-                            resetEditSinceLastFlash();
+                        onClick={async () => {
+                            setFlashing(true);
+                            console.log("Flashing");
+                            FlashShowData(boards)
+                                .then(() => {
+                                    setFlashing(false);
+                                    resetEditSinceLastFlash();
+                                    showNotification({
+                                        title: "Flash Command Sent",
+                                        message: "Bridger has recieved the flash command",
+                                    });
+                                })
+                                .catch((e) => {
+                                    setFlashing(false);
+                                    showNotification({
+                                        title: "Error while processing show data",
+                                        message: e.toString(),
+                                        color: "red",
+                                    });
+                                });
                         }}
                     >
                         Flash

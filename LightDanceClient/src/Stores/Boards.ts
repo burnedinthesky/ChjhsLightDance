@@ -1,7 +1,6 @@
 import { create } from "zustand";
 
 import { copyFile, removeFile, exists, readTextFile, writeTextFile, BaseDirectory } from "@tauri-apps/api/fs";
-import { appDataDir, join } from "@tauri-apps/api/path";
 
 import { v4 as uuidv4 } from "uuid";
 
@@ -22,6 +21,7 @@ export const useBoardStore = create<{
     addBoard(mac_addr: string, ip: string, name?: string): void;
     linkConnectedBoard(boardId: string, ip: string): void;
     setBoardStatus(boardId: string, status: BoardStatus): void;
+    overwriteConnectedBoards(boards: string[]): void;
     renameBoard(boardId: string, newName: string): void;
     deleteBoard(boardId: string): void;
     compressAssignedNums(): void;
@@ -95,10 +95,10 @@ export const useBoardStore = create<{
     addBoard(mac_addr: string, ip: string, name?: string) {
         const newBoard: BoardData = {
             id: mac_addr,
-            name: name ?? `Board ${get().boards.length}`,
+            name: name ?? `Board ${get().boards.length + 1}`,
             status: "connected",
             ip: ip,
-            assignedNum: get().boards.length,
+            assignedNum: get().boards.length + 1,
             lightGroups: [],
         };
 
@@ -113,6 +113,8 @@ export const useBoardStore = create<{
     },
 
     linkConnectedBoard(boardId, ip) {
+        console.log("called");
+        console.log(get().boards.find((board) => board.id === boardId));
         set((state) => ({
             boards: state.boards.map((board) =>
                 board.id === boardId ? { ...board, ip: ip, status: "connected" } : board
@@ -123,6 +125,16 @@ export const useBoardStore = create<{
     setBoardStatus(boardId, status) {
         set((state) => ({
             boards: state.boards.map((board) => (board.id === boardId ? { ...board, status: status } : board)),
+        }));
+    },
+
+    overwriteConnectedBoards(boards) {
+        console.log(boards);
+        set((state) => ({
+            boards: state.boards.map((board) => ({
+                ...board,
+                status: boards.includes(board.id) ? "connected" : "disconnected",
+            })),
         }));
     },
 

@@ -72,7 +72,11 @@ const BoardAccordion = ({ focused, setFocused }: BoardAccordionProps) => {
                                                 <PencilAltIcon className="w-4 text-blue-800" />
                                             </ActionIcon>
                                         </div>
-                                        <div className={`w-5 h-5 rounded-full ${ParseStatusToColor(board.status)}`} />
+                                        <div
+                                            className={`w-5 h-5 rounded-full transition-colors duration-500 ${ParseStatusToColor(
+                                                board.status
+                                            )}`}
+                                        />
                                     </div>
                                 </Accordion.Control>
                                 <Accordion.Panel>
