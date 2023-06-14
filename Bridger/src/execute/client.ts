@@ -12,24 +12,24 @@ export const ExecuteClientMessage = (
                 type: "notify",
                 payload: `${clientId};status;processing`,
             });
-        } else if (message.payload === "terminate") {
-            sendBridgerMessage("manager", null, {
-                type: "notify",
-                payload: `${clientId};show;terminated`,
-            });
         } else if (message.payload === "showStart") {
             sendBridgerMessage("manager", null, {
                 type: "notify",
                 payload: `${clientId};show;start`,
             });
-        }
-    } else if (message.type === "reply") {
-        if (message.payload === "callibrate") {
+        } else if (message.payload === "showEnd") {
             sendBridgerMessage("manager", null, {
                 type: "notify",
-                payload: `${clientId};callibrate;${message.payload}`,
+                payload: `${clientId};show;end`,
             });
-        } else if (message.payload === "flash") {
+        } else if (message.payload === "showTerminate") {
+            sendBridgerMessage("manager", null, {
+                type: "notify",
+                payload: `${clientId};show;terminated`,
+            });
+        }
+    } else if (message.type === "reply") {
+        if (message.payload === "flash") {
             sendBridgerMessage("manager", null, {
                 type: "notify",
                 payload: `${clientId};status;done`,

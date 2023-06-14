@@ -1,6 +1,5 @@
-import * as WebSocket from "ws";
-import { BoardTypes, BridgerMessageType, FlashData, MessageType } from "../messages.types";
 import { z } from "zod";
+import { BoardTypes, BridgerMessageType, FlashData, MessageType } from "../messages.types";
 
 export const ExecuteManagerMessage = (
     message: MessageType,
@@ -15,24 +14,6 @@ export const ExecuteManagerMessage = (
                 type: "flash",
                 payload: objectData[addr],
             });
-        });
-    } else if (message.type === "calibrate") {
-        const [target, addr, time] = message.payload.split(";");
-        const callibrateZod = z.object({
-            target: z.enum(["esp", "rpi"]),
-            addr: z.string(),
-            time: z.number(),
-        });
-
-        const parsedData = callibrateZod.parse({
-            target,
-            addr,
-            time: parseFloat(time),
-        });
-
-        sendBridgerMessage(parsedData.target, [parsedData.addr], {
-            type: "notify",
-            payload: `callibrate;${parsedData.time}`,
         });
     } else if (message.type === "showStart") {
         const systemTime = parseFloat(message.payload);
@@ -53,5 +34,7 @@ export const ExecuteManagerMessage = (
             type: "notify",
             payload: `show;terminate`,
         });
+    } else if (message.type === "throw") {
+        console.log(`Manager thrown error: ${message.payload}`);
     } else throw new Error("Invalid message type.");
 };

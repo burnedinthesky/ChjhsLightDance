@@ -16,8 +16,7 @@ const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
 
 let managerInstance: WebSocket | null = null;
-let rpiInstances: Record<string, WebSocket> = {};
-let espInstances: Record<string, WebSocket> = {};
+let rpiInstances: Record<string, { ws: WebSocket; ip: string }> = {};
 
 let managerMsgQueue: BridgerMessageType[] = [];
 
@@ -32,13 +31,9 @@ function sendBridgerMessage(target: BoardTypes, ids: string[] | null, message: B
         else managerMsgQueue.push(jsonMessage);
         return;
     }
-    // const targetInstances = target == "rpi" ? rpiInstances : espInstances;
     const targets = ids ?? Object.keys(rpiInstances);
-    console.log(rpiInstances);
-    console.log(ids);
-    console.log(targets);
     targets.forEach((id) => {
-        rpiInstances[id].send(JSON.stringify(jsonMessage));
+        rpiInstances[id].ws.send(JSON.stringify(jsonMessage));
     });
 }
 
@@ -63,7 +58,9 @@ function sendBridgerError(
     } else throw new Error("No target specified");
 }
 
-wss.on("connection", (ws: WebSocket) => {
+wss.on("connection", (ws: WebSocket, req) => {
+    console.log(`New connection from ${req.socket.remoteAddress}`);
+
     ws.on("message", (message: string) => {
         let dataObject: MessageType | null = null;
 
@@ -81,12 +78,28 @@ wss.on("connection", (ws: WebSocket) => {
                 if (dataObject.payload !== process.env.MANAGER_API_KEY)
                     return sendBridgerError("Failed to establish manager status, please retry", undefined, ws);
 
-                ws.send(JSON.stringify({ source: "bridger", type: "notify", payload: "Manager connected" }));
+                sendBridgerMessage("rpi", null, {
+                    type: "notify",
+                    payload: "manager;connected",
+                });
                 managerInstance = ws;
                 managerMsgQueue.forEach((msg) => {
                     managerInstance!.send(JSON.stringify(msg));
                 });
                 managerMsgQueue = [];
+                return;
+            } else if (dataObject.type === "refresh") {
+                if (dataObject.payload === "rpi") {
+                    sendBridgerMessage("manager", null, {
+                        type: "refresh",
+                        payload: Object.keys(rpiInstances).reduce(
+                            (acc, id) => acc + `${id},${rpiInstances[id].ip}`,
+                            ""
+                        ),
+                    });
+                } else {
+                    sendBridgerError("Invalid refresh target", undefined, ws);
+                }
                 return;
             } else if (!managerInstance)
                 return sendBridgerError("Failed to establish manager status, please retry", undefined, ws);
@@ -94,7 +107,6 @@ wss.on("connection", (ws: WebSocket) => {
             try {
                 ExecuteManagerMessage(dataObject, sendBridgerMessage);
             } catch (e) {
-                console.log(e);
                 let err_message = "Unknown error";
                 if (e instanceof Error) err_message = e.message;
                 sendBridgerError(JSON.stringify(err_message), undefined, ws);
@@ -102,29 +114,29 @@ wss.on("connection", (ws: WebSocket) => {
             return;
         }
 
-        console.log(dataObject);
-
         if (dataObject.type === "initialize") {
-            const [apiKey, clientMacAddr] = dataObject.payload.split(";");
+            const [apiKey, clientMacAddr, clientIp] = dataObject.payload.split(";");
             if (apiKey !== process.env.CLIENT_API_KEY || !macAddrRegex.test(clientMacAddr)) {
                 return sendBridgerError("Failed to establish client status, please retry", undefined, ws);
             }
-            console.log(clientMacAddr);
-            if (dataObject.source === "rpi") rpiInstances[clientMacAddr] = ws;
-            else espInstances[clientMacAddr] = ws;
+
+            if (dataObject.source === "rpi")
+                rpiInstances[clientMacAddr] = {
+                    ws,
+                    ip: clientIp,
+                };
 
             return sendBridgerMessage("manager", null, {
                 type: "notify",
-                payload: `${clientMacAddr};status;connected;${dataObject.source};`,
+                payload: `${clientMacAddr};status;connected;${clientIp};`,
             });
         }
-        const clientAddr = Object.keys(rpiInstances).find((key) => rpiInstances[key] === ws);
+        const clientAddr = Object.keys(rpiInstances).find((key) => rpiInstances[key].ws === ws);
         if (!clientAddr) return sendBridgerError("Failed to identify client, please retry", undefined, ws);
 
         try {
             ExecuteClientMessage(dataObject, sendBridgerMessage, clientAddr);
         } catch (e) {
-            console.log(e);
             let err_message = "Unknown error";
             if (e instanceof Error) err_message = e.message;
             sendBridgerError(JSON.stringify(err_message), undefined, ws);
@@ -132,7 +144,7 @@ wss.on("connection", (ws: WebSocket) => {
     });
 
     ws.on("close", () => {
-        console.log("Shit closed");
+        console.log(`Connection closed from ${req.socket.remoteAddress}`);
         if (managerInstance === ws) {
             managerInstance = null;
             sendBridgerMessage("rpi", null, {
@@ -143,18 +155,10 @@ wss.on("connection", (ws: WebSocket) => {
                 type: "notify",
                 payload: "manager;status;disconnected",
             });
-        } else if (Object.values(rpiInstances).includes(ws)) {
-            const clientAddr = Object.keys(rpiInstances).find((key) => rpiInstances[key] === ws);
+        } else if (Object.values(rpiInstances).find((obj) => obj.ws === ws)) {
+            const clientAddr = Object.keys(rpiInstances).find((key) => rpiInstances[key].ws === ws);
             if (!clientAddr) return;
             delete rpiInstances[clientAddr];
-            sendBridgerMessage("manager", null, {
-                type: "notify",
-                payload: `${clientAddr};status;disconnected`,
-            });
-        } else if (Object.values(espInstances).includes(ws)) {
-            const clientAddr = Object.keys(espInstances).find((key) => espInstances[key] === ws);
-            if (!clientAddr) return;
-            delete espInstances[clientAddr];
             sendBridgerMessage("manager", null, {
                 type: "notify",
                 payload: `${clientAddr};status;disconnected`,
