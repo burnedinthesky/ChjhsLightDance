@@ -9,12 +9,18 @@ from uuid import getnode as get_mac
 
 from parsers import parse_hardware_config, parse_light_config
 
+
 messageQueue = Queue(0)
 
 if not get_mac() == get_mac(): raise Exception("Unable to detect MAC address")
 mac_addr = "%012X" % get_mac()
 host_name = socket.gethostname()
 local_ip_addr = socket.gethostbyname(host_name)
+
+#Generate random mac address for testing
+import random
+mac_addr = "%012X" % random.randrange(16**12)
+print(mac_addr)
 
 
 def queue_message(type: str, message: str):

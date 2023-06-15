@@ -9,7 +9,6 @@ import { showNotification } from "@mantine/notifications";
 
 import ShowDisplay from "../Show";
 
-import { v4 as uuidv4 } from "uuid";
 import { LoadingOverlay } from "@mantine/core";
 import { useWSConvStore } from "../../Stores/WSConnection";
 import { sendWSMessage } from "../../lib/wsPortal";
@@ -23,8 +22,6 @@ const ConfApp = ({ appMode }: ConfAppProps) => {
     const [lANIp, setLANIp] = useState<string>("Loading");
     const [focusedBoard, setFocusedBoard] = useState<string | null>(null);
 
-    const [startShowID, setStartShowID] = useState<string | null>(null);
-
     const { loadFromLocalStorage } = useBoardStore((state) => ({
         loadFromLocalStorage: state.loadFromLocalStorage,
     }));
@@ -34,8 +31,9 @@ const ConfApp = ({ appMode }: ConfAppProps) => {
         setRefreshedBoard: state.setRefreshedBoard,
     }));
 
-    const { resetShow } = useShowStore((state) => ({
-        resetShow: state.resetShow,
+    const { showId, startShow } = useShowStore((state) => ({
+        showId: state.showId,
+        startShow: state.startShow,
     }));
 
     useEffect(() => {
@@ -43,10 +41,8 @@ const ConfApp = ({ appMode }: ConfAppProps) => {
 
         setRefreshedBoard(false);
         invoke("get_lan_ip")
-            .then((ret) => {
-                setLANIp(ret as string);
-            })
-            .catch((err) => {
+            .then((ret) => setLANIp(ret as string))
+            .catch(() => {
                 showNotification({
                     title: "Error",
                     message: "Failed to get computer LAN IP, reload the app to try again.",
@@ -56,9 +52,7 @@ const ConfApp = ({ appMode }: ConfAppProps) => {
             });
 
         loadFromLocalStorage()
-            .then(() => {
-                sendWSMessage("refresh", "rpi");
-            })
+            .then(() => sendWSMessage("refresh", "rpi"))
             .catch(() => {
                 showNotification({
                     title: "Error",
@@ -84,12 +78,7 @@ const ConfApp = ({ appMode }: ConfAppProps) => {
                     </div>
                     <h2 className="text-xl">Performance Configuration</h2>
                     <div className="w-full bg-zinc-50 border border-zinc-400 rounded-lg flex px-7 items-center">
-                        <ShowConfigurator
-                            startShow={() => {
-                                resetShow();
-                                setStartShowID(uuidv4());
-                            }}
-                        />
+                        <ShowConfigurator startShow={startShow} />
                     </div>
                 </div>
 
@@ -100,7 +89,7 @@ const ConfApp = ({ appMode }: ConfAppProps) => {
                     </div>
                 </div>
             </div>
-            {startShowID && <ShowDisplay key={startShowID} showId={startShowID} setShowId={setStartShowID} />}
+            {showId && <ShowDisplay key={showId} />}
         </div>
     );
 };

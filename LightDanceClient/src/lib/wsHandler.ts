@@ -36,7 +36,7 @@ export function handleWSMessage(message: MessageType) {
                 if (showState === "running")
                     showNotification({
                         title: "CRITICAL: Board Disconnected",
-                        message: `Board ${clientAddr} has disconnected`,
+                        message: `Board ${clientAddr} has disconnected during show`,
                         color: "red",
                         autoClose: false,
                     });

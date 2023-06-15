@@ -7,11 +7,6 @@ import { BaseDirectory, readBinaryFile } from "@tauri-apps/api/fs";
 import { useShowStore } from "../Stores/Show";
 import { sendWSMessage } from "../lib/wsPortal";
 
-interface ShowDisplayProps {
-    showId: string | null;
-    setShowId: React.Dispatch<React.SetStateAction<string | null>>;
-}
-
 const setStartTime = () => {
     const now = new Date();
     return new Date(now.getTime() + 1000);
@@ -23,16 +18,18 @@ const loadAudio = async (audioFile: string) => {
     );
 };
 
-const ShowDisplay = ({ showId, setShowId }: ShowDisplayProps) => {
+const ShowDisplay = () => {
     const { boards, audioFile } = useBoardStore((state) => ({ boards: state.boards, audioFile: state.audioFile }));
 
     const [timeUntilStart, setTimeUntilStart] = useState<number | null>(null);
 
-    const { boardState, showState, initializeShow, completeShow } = useShowStore((state) => ({
+    const { showId, boardState, showState, initializeShow, completeShow, endShow } = useShowStore((state) => ({
+        showId: state.showId,
         boardState: state.boardState,
         showState: state.showState,
         initializeShow: state.initializeShow,
         completeShow: state.completeShow,
+        endShow: state.endShow,
     }));
 
     const startTime = useRef<Date | null>(null);
@@ -71,17 +68,12 @@ const ShowDisplay = ({ showId, setShowId }: ShowDisplayProps) => {
         if (showState !== "running" || timeUntilStart !== 0) return;
         if (audioRef.current === null) throw new Error("Audio ref is null");
 
-        Object.values(boardState).forEach((board) => {
-            if (board.ready === "pending") {
-                showNotification({
-                    title: "Show start aborted",
-                    message: `Board ${board.name} is not ready!`,
-                    color: "red",
-                    autoClose: false,
-                });
-                setShowId(null);
-            }
-        });
+        const unreadyBoards = Object.values(boardState).filter((board) => board.ready === "pending");
+        if (unreadyBoards.length)
+            endShow(
+                "startFailed",
+                unreadyBoards.map((board) => board.name)
+            );
         audioRef.current.play();
     }, [showState, timeUntilStart]);
 
@@ -89,7 +81,7 @@ const ShowDisplay = ({ showId, setShowId }: ShowDisplayProps) => {
         <Modal
             opened={true}
             onClose={() => {
-                if (showState === "complete") setShowId(null);
+                if (showState === "complete") endShow("complete");
                 else
                     showNotification({
                         message: "Show is in progress, terminate the show to close modal!",
@@ -148,7 +140,7 @@ const ShowDisplay = ({ showId, setShowId }: ShowDisplayProps) => {
                         className=" font-jbmono bg-blue-500 hover:bg-blue-600 transition-colors duration-100"
                         size="xs"
                         onClick={() => {
-                            setShowId(null);
+                            endShow("terminated");
                         }}
                     >
                         Close
@@ -176,14 +168,7 @@ const ShowDisplay = ({ showId, setShowId }: ShowDisplayProps) => {
                                 <Button
                                     className=" font-jbmono bg-red-500 hover:bg-red-600 transition-colors duration-100"
                                     size="xs"
-                                    onClick={() => {
-                                        sendWSMessage("showStop", "");
-                                        showNotification({
-                                            message: "Show terminated by user",
-                                            color: "red",
-                                        });
-                                        setShowId(null);
-                                    }}
+                                    onClick={() => {}}
                                 >
                                     Terminate
                                 </Button>
