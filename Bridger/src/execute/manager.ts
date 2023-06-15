@@ -6,13 +6,13 @@ export const ExecuteManagerMessage = (
     sendBridgerMessage: (target: BoardTypes, params: string[] | null, message: BridgerMessageType) => void
 ) => {
     if (message.type === "flash") {
-        const objectData = JSON.parse(message.payload);
-        const data = FlashData.parse(objectData);
+        const rawObjectData = JSON.parse(message.payload);
+        const objData = FlashData.parse(rawObjectData);
 
-        Object.keys(data).forEach((addr) => {
-            sendBridgerMessage(data[addr].type, [addr], {
+        Object.keys(objData).forEach((addr) => {
+            sendBridgerMessage(objData[addr].type, [addr], {
                 type: "flash",
-                payload: objectData[addr],
+                payload: JSON.stringify(objData[addr]),
             });
         });
     } else if (message.type === "showStart") {
@@ -21,16 +21,8 @@ export const ExecuteManagerMessage = (
             type: "notify",
             payload: `show;start;${startTime}`,
         });
-        sendBridgerMessage("esp", null, {
-            type: "notify",
-            payload: `show;start;${startTime}`,
-        });
     } else if (message.type === "showStop") {
         sendBridgerMessage("rpi", null, {
-            type: "notify",
-            payload: `show;stop`,
-        });
-        sendBridgerMessage("esp", null, {
             type: "notify",
             payload: `show;stop`,
         });

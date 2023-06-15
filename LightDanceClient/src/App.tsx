@@ -3,10 +3,9 @@ import Sidebar from "./Components/Nav/Sidebar";
 import AsmApp from "./Components/Assembler/AsmApp";
 import ConfApp from "./Components/Configurator/ConfApp";
 
-import { connectWebSocket, sendWSMessage } from "./lib/wsPortal";
+import { connectWebSocket } from "./lib/wsPortal";
 import { useWSConvStore } from "./Stores/WSConnection";
 import { Button, Modal } from "@mantine/core";
-import { useBoardStore } from "./Stores/Boards";
 
 connectWebSocket();
 

@@ -3,6 +3,8 @@ import { readTextFile, BaseDirectory, writeTextFile } from "@tauri-apps/api/fs";
 import { z } from "zod";
 import { BoardData } from "../types/Boards";
 import { sendWSMessage } from "./wsPortal";
+import { invoke } from "@tauri-apps/api/tauri";
+import { UIFragment } from "../types/Frags";
 
 type ShowFlash = Record<
     string,
@@ -21,14 +23,25 @@ type ShowFlash = Record<
 
 const LightConfig = z.object({
     uuid: z.string(),
-    payload: z.record(z.string(), z.array(z.record(z.string(), z.string()))),
+    payload: z.record(z.string(), z.array(z.record(z.number(), z.string()))),
 });
 
-export async function CompileDance() {
+export async function CompileDance(frags: UIFragment[]) {
+    const parsedDance = (await invoke("compile_final_dance", {
+        excels: JSON.stringify(frags.map((f) => f.fragment.filePath)),
+        startfrom: 0,
+    })) as string;
+
+    const [stdOut, stdErr] = parsedDance.split(";;;");
+    if (stdErr) throw new Error(stdErr);
+    const parsedDanceObj = JSON.parse(stdOut);
     const data: z.infer<typeof LightConfig> = {
         uuid: JSON.parse(await readTextFile("fragments.json", { dir: BaseDirectory.AppData })).uuid,
-        payload: { B0G0: [] },
+        payload: parsedDanceObj,
     };
+
+    LightConfig.parse(data);
+
     await writeTextFile("compiled_dance.json", JSON.stringify(data), {
         dir: BaseDirectory.AppData,
     });

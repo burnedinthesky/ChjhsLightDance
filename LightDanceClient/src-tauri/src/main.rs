@@ -1,10 +1,7 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
-
-// #[tauri::command]
-// fn greet(name: &str) -> String {
-//     format!("Hello, {}! You've been greeted from Rust!", name)
-// }
+use std::process::Command;
+// use tauri::PathResolver;
 
 #[tauri::command]
 fn get_lan_ip() -> String {
@@ -27,9 +24,73 @@ fn open_file_browser(path: String) {
     open::that_in_background(path);
 }
 
+#[tauri::command]
+fn get_fragment_length(handle: tauri::AppHandle, fragpath: String) -> String {
+    let resource_pathbuf = handle.path_resolver().resource_dir();
+    let resource_path: String = resource_pathbuf
+        .unwrap_or_default()
+        .to_string_lossy()
+        .to_string();
+
+    let pyprog_loc = format!("{}/resources/cal_length.py", resource_path);
+
+    let output = Command::new("python3")
+        .arg(pyprog_loc)
+        .arg(fragpath)
+        .output()
+        .expect("failed to execute process");
+    let stdout = String::from_utf8(output.stdout).unwrap();
+    let stderr = String::from_utf8(output.stderr).unwrap();
+
+    println!("stdout: {}", stdout);
+    println!("stderr: {}", stderr);
+
+    format! {"{};;;{}", stdout, stderr}
+}
+
+#[tauri::command]
+fn compile_final_dance(handle: tauri::AppHandle, excels: String, startfrom: i32) -> String {
+    let resource_path: String = handle
+        .path_resolver()
+        .resource_dir()
+        .unwrap_or_default()
+        .to_string_lossy()
+        .to_string();
+
+    let app_data_dir = handle
+        .path_resolver()
+        .app_data_dir()
+        .unwrap()
+        .to_string_lossy()
+        .to_string();
+
+    let pyprog_loc = format!("{}/resources/compile_dance.py", resource_path);
+    let board_config_path = format!("{}/board_configs.json", app_data_dir);
+
+    let output = Command::new("python3")
+        .arg(pyprog_loc)
+        .arg(board_config_path)
+        .arg(excels)
+        .arg(startfrom.to_string())
+        .output()
+        .expect("failed to execute process");
+    let stdout = String::from_utf8(output.stdout).unwrap();
+    let stderr = String::from_utf8(output.stderr).unwrap();
+
+    println!("stdout: {}", stdout);
+    println!("stderr: {}", stderr);
+
+    format! {"{};;;{}", stdout, stderr}
+}
+
 fn main() {
     tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![get_lan_ip, open_file_browser])
+        .invoke_handler(tauri::generate_handler![
+            get_lan_ip,
+            open_file_browser,
+            get_fragment_length,
+            compile_final_dance
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

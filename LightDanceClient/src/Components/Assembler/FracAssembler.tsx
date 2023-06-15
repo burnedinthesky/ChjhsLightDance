@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { Button, Modal, NumberInput, ScrollArea } from "@mantine/core";
 import { PlusCircleIcon } from "@heroicons/react/solid";
 import { PlusIcon } from "@heroicons/react/outline";
@@ -38,9 +38,8 @@ const FracAssembler = ({ selectedFrag }: FracAssemblerProps) => {
                             <p className="w-[40px] text-end px-2.5">X</p>
                         </div>
                         {fragmentsByOrder.map((frag, i) => (
-                            <>
+                            <Fragment key={frag.fragment.id}>
                                 <button
-                                    key={`open-${frag.fragment.id}`}
                                     className={`w-full h-0.5 bg-slate-300 relative group cursor-pointer ${
                                         selectedFrag ? "hover:bg-blue-500" : "hover:bg-green-500"
                                     }`}
@@ -57,7 +56,6 @@ const FracAssembler = ({ selectedFrag }: FracAssemblerProps) => {
                                     />
                                 </button>
                                 <AsmFragBar
-                                    key={frag.fragment.id}
                                     frag={frag}
                                     index={i}
                                     prevLength={fragmentsByOrder
@@ -65,7 +63,7 @@ const FracAssembler = ({ selectedFrag }: FracAssemblerProps) => {
                                         .slice(0, i)
                                         .reduce((prev, cur) => prev + cur.length, 0)}
                                 />
-                            </>
+                            </Fragment>
                         ))}
                         <button
                             className={`w-full h-0.5 bg-slate-300 relative group cursor-pointer ${

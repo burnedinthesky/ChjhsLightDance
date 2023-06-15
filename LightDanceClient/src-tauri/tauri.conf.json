@@ -10,6 +10,7 @@
         "productName": "Chingshin Light Dance Manager",
         "version": "1.0.0"
     },
+
     "tauri": {
         "allowlist": {
             "all": false,
@@ -37,7 +38,8 @@
                 "icons/icon.ico"
             ],
             "identifier": "com.chjhs.lightdance.mgr.dev",
-            "targets": "all"
+            "targets": "all",
+            "resources": ["resources/*"]
         },
         "security": {
             "csp": null

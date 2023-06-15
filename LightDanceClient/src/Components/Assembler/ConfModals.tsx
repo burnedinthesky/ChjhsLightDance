@@ -2,6 +2,8 @@ import { Button, Modal, Radio, TextInput } from "@mantine/core";
 import { useFragmentStore } from "../../Stores/Fragments";
 import { open } from "@tauri-apps/api/dialog";
 import { FolderAddIcon, PlusIcon } from "@heroicons/react/outline";
+import { useState } from "react";
+import { showNotification } from "@mantine/notifications";
 
 interface RenameFolderModalProps {
     renameModalTarget: string | null;
@@ -168,10 +170,17 @@ const AddFragmentModal = ({
         createFragment: state.createFragment,
     }));
 
+    const [creatingFrag, setCreatingFrag] = useState<boolean>(false);
+
     return (
         <Modal
             opened={addFragmentModal}
             onClose={() => {
+                if (creatingFrag)
+                    return showNotification({
+                        title: "Fragment creation in progress",
+                        message: "Please wait for the fragment to be created",
+                    });
                 setAddFragmentModal(false);
             }}
             centered
@@ -251,15 +260,35 @@ const AddFragmentModal = ({
                             );
                         })()
                     }
+                    loading={creatingFrag}
                     leftIcon={<PlusIcon className="w-4" />}
                     onClick={() => {
-                        createFragment(newFragmentData.name, newFragmentData.file, newFragmentData.folder, []);
-                        setNewFragmentData({
-                            file: "",
-                            folder: "",
-                            name: "",
-                        });
-                        setAddFragmentModal(false);
+                        setCreatingFrag(true);
+                        createFragment(newFragmentData.name, newFragmentData.file, newFragmentData.folder, [])
+                            .then(() => {
+                                setNewFragmentData({
+                                    file: "",
+                                    folder: "",
+                                    name: "",
+                                });
+                                setCreatingFrag(false);
+                                setAddFragmentModal(false);
+                            })
+                            .catch((e) => {
+                                showNotification({
+                                    title: "Fragment creation failed",
+                                    message: `${e}`,
+                                    color: "red",
+                                    autoClose: 10000,
+                                });
+                                setNewFragmentData({
+                                    file: "",
+                                    folder: "",
+                                    name: "",
+                                });
+                                setCreatingFrag(false);
+                                setAddFragmentModal(false);
+                            });
                     }}
                 >
                     Add Fragment

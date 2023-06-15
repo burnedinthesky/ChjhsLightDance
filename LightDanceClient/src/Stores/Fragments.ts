@@ -12,7 +12,8 @@ import {
 } from "@tauri-apps/api/fs";
 import { appDataDir, join } from "@tauri-apps/api/path";
 
-import { notifications } from "@mantine/notifications";
+import { notifications, showNotification } from "@mantine/notifications";
+import { invoke } from "@tauri-apps/api/tauri";
 
 export const useFragmentStore = create<{
     fragments: UIFragment[];
@@ -21,7 +22,7 @@ export const useFragmentStore = create<{
     loadFromLocalStorage(): Promise<void>;
     saveToLocalStorage(): void;
 
-    createFragment(fragName: string, fragPath: string, folder: string, order?: number[]): void;
+    createFragment(fragName: string, fragPath: string, folder: string, order?: number[]): Promise<void>;
     createEmptyFragment(duration: number, order: number[]): void;
     deleteFragment(fragID: string): void;
 
@@ -88,31 +89,45 @@ export const useFragmentStore = create<{
             });
         });
     },
-    createFragment(fragName: string, fragPath: string, folder: string, order?: number[]) {
+    async createFragment(fragName: string, fragPath: string, folder: string, order?: number[]) {
         if (!get().folders.find((f) => f.name === folder)) throw new Error("Folder not found");
-        const newFragment: UIFragment = {
-            fragment: {
-                id: uuidv4(),
-                name: fragName,
-                filePath: fragPath,
-                length: 0,
-            },
-            folder: get().folders.find((f) => f.name === folder) as FragmentFolder,
-            order: [],
-            empty: false,
-        };
+        const fragmentId = uuidv4();
+        let fragmentPath = "";
 
         (async () => {
             if (!(await exists("frag_excels/", { dir: BaseDirectory.AppData }))) {
                 await createDir("frag_excels", { dir: BaseDirectory.AppData, recursive: true });
             }
-            await copyFile(fragPath, await join("frag_excels", `frag-${newFragment.fragment.id}.xlsx`), {
+            await copyFile(fragPath, await join("frag_excels", `frag-${fragmentId}.xlsx`), {
                 dir: BaseDirectory.AppData,
             });
-            return await join(await appDataDir(), "frag_excels", `frag-${newFragment.fragment.id}.xlsx`);
-        })().then((path: string) => {
-            newFragment.fragment.filePath = path;
+            return await join(await appDataDir(), "frag_excels", `frag-${fragmentId}.xlsx`);
+        })()
+            .then((path: string) => {
+                fragmentPath = path;
+            })
+            .catch((err) => {
+                throw new Error(err);
+            });
+
+        const returnedLength = await invoke("get_fragment_length", {
+            fragpath: fragmentPath,
         });
+        const [stdout, stderr] = (returnedLength as string).split(";;;");
+        if (stderr.length) throw new Error(stderr);
+
+        const fragLength = parseInt(stdout) / 1000;
+        const newFragment: UIFragment = {
+            fragment: {
+                id: fragmentId,
+                name: fragName,
+                filePath: fragmentPath,
+                length: fragLength,
+            },
+            folder: get().folders.find((f) => f.name === folder) as FragmentFolder,
+            order: [],
+            empty: false,
+        };
 
         set((state) => ({
             ...state,

@@ -8,6 +8,7 @@ import { appDataDir, join } from "@tauri-apps/api/path";
 import { useBoardStore } from "../../Stores/Boards";
 import { CompileDance, FlashShowData } from "../../lib/showData";
 import { showNotification } from "@mantine/notifications";
+import { useFragmentStore } from "../../Stores/Fragments";
 
 interface ShowConfiguratorProps {
     startShow: () => void;
@@ -26,6 +27,10 @@ const ShowConfigurator = ({ startShow }: ShowConfiguratorProps) => {
             editSinceLastFlash: state.editSinceLastFlash,
             resetEditSinceLastFlash: state.resetEditSinceLastFlash,
         }));
+
+    const { getFragByOrder } = useFragmentStore((state) => ({
+        getFragByOrder: state.getFragmentByOrder,
+    }));
 
     useEffect(() => {
         (async () => {
@@ -49,7 +54,7 @@ const ShowConfigurator = ({ startShow }: ShowConfiguratorProps) => {
                         className="font-jbmono bg-blue-500 hover:bg-blue-600 transition-colors duration-100"
                         size="xs"
                         onClick={() => {
-                            CompileDance()
+                            CompileDance(getFragByOrder())
                                 .then(() => setShowConfigState("Up to date"))
                                 .catch((e) =>
                                     showNotification({
