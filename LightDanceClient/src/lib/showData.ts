@@ -62,6 +62,4 @@ export async function FlashShowData(hwConf: BoardData[]) {
     });
 
     sendWSMessage("flash", JSON.stringify(compiledShowData));
-
-    await new Promise((resolve) => setTimeout(resolve, 1000));
 }

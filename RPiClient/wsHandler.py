@@ -24,13 +24,9 @@ def queue_message(type: str, message: str):
         "payload": message
     }))
 
+def throw_ws_error(message: str):
+    queue_message("throw", message)
 
-def generate_error_message(message: str):
-    return json.dumps({
-        "source": "rpi",
-        "type": "throw",
-        "payload": message
-    })
 
 async def close_connection(connection_closed):
     connection_closed.set()
@@ -48,10 +44,14 @@ async def receive_messages(websocket, show, lighting_groups, connection_closed):
             if msgType == "notify":
                 data = msgPayload.split(";")
                 if data[0] == "show":
-                    if data[1] == "start": show.set_start_time(float(data[2]))
-                    elif data[1] == "terminate": show.terminate_show()
-                    else: await websocket.send(generate_error_message("Invalid show command"))
-                else: await websocket.send(generate_error_message("Invalid notify type"))
+                    if data[1] == "start": show.set_show_start(int(data[2]))
+                    elif data[1] == "stop": show.terminate_show()
+                    else: throw_ws_error("Invalid show command")
+                elif data[0] == "manager":
+                    if data[1] == "connected": queue_message("recieve", "managerConnected")
+                    elif data[1] == "disconnected": show.terminate_show()
+                    else: throw_ws_error("Invalid manager status")
+                else: throw_ws_error("Invalid notify type")
             elif msgType == "flash":
                 queue_message("recieve", "flash")
                 payload = response["payload"]
@@ -59,7 +59,7 @@ async def receive_messages(websocket, show, lighting_groups, connection_closed):
                 parse_light_config(payload["lightConfig"], lighting_groups)
                 queue_message("reply", "flash")
             else: 
-                await websocket.send(generate_error_message("Invalid message type"))
+                throw_ws_error("Invalid message type")
                     
         except ConnectionClosed:
             print("Connection closed")

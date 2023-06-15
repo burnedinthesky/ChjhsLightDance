@@ -16,23 +16,23 @@ export const ExecuteManagerMessage = (
             });
         });
     } else if (message.type === "showStart") {
-        const systemTime = parseFloat(message.payload);
+        const startTime = parseInt(message.payload);
         sendBridgerMessage("rpi", null, {
             type: "notify",
-            payload: `show;start;${systemTime}`,
+            payload: `show;start;${startTime}`,
         });
         sendBridgerMessage("esp", null, {
             type: "notify",
-            payload: `show;start;${systemTime}`,
+            payload: `show;start;${startTime}`,
         });
-    } else if (message.type === "showTerminate") {
+    } else if (message.type === "showStop") {
         sendBridgerMessage("rpi", null, {
             type: "notify",
-            payload: `show;terminate`,
+            payload: `show;stop`,
         });
         sendBridgerMessage("esp", null, {
             type: "notify",
-            payload: `show;terminate`,
+            payload: `show;stop`,
         });
     } else if (message.type === "throw") {
         console.log(`Manager thrown error: ${message.payload}`);

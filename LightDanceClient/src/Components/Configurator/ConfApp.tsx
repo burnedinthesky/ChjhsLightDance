@@ -13,6 +13,7 @@ import { v4 as uuidv4 } from "uuid";
 import { LoadingOverlay } from "@mantine/core";
 import { useWSConvStore } from "../../Stores/WSConnection";
 import { sendWSMessage } from "../../lib/wsPortal";
+import { useShowStore } from "../../Stores/Show";
 
 interface ConfAppProps {
     appMode: string;
@@ -31,6 +32,10 @@ const ConfApp = ({ appMode }: ConfAppProps) => {
     const { refreshedBoard, setRefreshedBoard } = useWSConvStore((state) => ({
         refreshedBoard: state.refreshedBoard,
         setRefreshedBoard: state.setRefreshedBoard,
+    }));
+
+    const { resetShow } = useShowStore((state) => ({
+        resetShow: state.resetShow,
     }));
 
     useEffect(() => {
@@ -81,6 +86,7 @@ const ConfApp = ({ appMode }: ConfAppProps) => {
                     <div className="w-full bg-zinc-50 border border-zinc-400 rounded-lg flex px-7 items-center">
                         <ShowConfigurator
                             startShow={() => {
+                                resetShow();
                                 setStartShowID(uuidv4());
                             }}
                         />

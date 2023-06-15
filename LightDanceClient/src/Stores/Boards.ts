@@ -21,7 +21,6 @@ export const useBoardStore = create<{
     addBoard(mac_addr: string, ip: string, name?: string): void;
     linkConnectedBoard(boardId: string, ip: string): void;
     setBoardStatus(boardId: string, status: BoardStatus): void;
-    overwriteConnectedBoards(boards: string[]): void;
     renameBoard(boardId: string, newName: string): void;
     deleteBoard(boardId: string): void;
     compressAssignedNums(): void;
@@ -125,16 +124,6 @@ export const useBoardStore = create<{
     setBoardStatus(boardId, status) {
         set((state) => ({
             boards: state.boards.map((board) => (board.id === boardId ? { ...board, status: status } : board)),
-        }));
-    },
-
-    overwriteConnectedBoards(boards) {
-        console.log(boards);
-        set((state) => ({
-            boards: state.boards.map((board) => ({
-                ...board,
-                status: boards.includes(board.id) ? "connected" : "disconnected",
-            })),
         }));
     },
 

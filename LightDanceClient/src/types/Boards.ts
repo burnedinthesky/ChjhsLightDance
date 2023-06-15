@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const BoardStatusZod = z.enum(["connected", "processing", "disconnected"]);
+export const BoardStatusZod = z.enum(["disconnected", "connected", "processing", "inshow"]);
 
 export type BoardStatus = z.infer<typeof BoardStatusZod>;
 

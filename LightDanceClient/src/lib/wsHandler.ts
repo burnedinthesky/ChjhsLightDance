@@ -3,16 +3,22 @@ import { useBoardStore } from "../Stores/Boards";
 import { useWSConvStore } from "../Stores/WSConnection";
 import { BoardData } from "../types/Boards";
 import { MessageType } from "../types/WSMsg";
+import { useShowStore } from "../Stores/Show";
 
 let boards: BoardData[] = [];
+let showState: "initializing" | "running" | "complete" = "initializing";
 
 useBoardStore.subscribe((state) => {
     boards = state.boards;
 });
 
-const { addBoard, linkConnectedBoard, setBoardStatus } = useBoardStore.getState();
+useShowStore.subscribe((state) => {
+    showState = state.showState;
+});
 
+const { addBoard, linkConnectedBoard, setBoardStatus } = useBoardStore.getState();
 const { setRefreshedBoard } = useWSConvStore.getState();
+const { setBoardState } = useShowStore.getState();
 
 export function handleWSMessage(message: MessageType) {
     if (message.type === "notify") {
@@ -25,16 +31,30 @@ export function handleWSMessage(message: MessageType) {
                     return linkConnectedBoard(clientAddr, parsedPayload[3]);
                 addBoard(clientAddr, parsedPayload[3]);
             } else if (status === "processing") setBoardStatus(clientAddr, status);
-            else if (status === "disconnected") setBoardStatus(clientAddr, status);
-            else if (status === "done") setBoardStatus(clientAddr, "connected");
+            else if (status === "disconnected") {
+                setBoardStatus(clientAddr, status);
+                if (showState === "running")
+                    showNotification({
+                        title: "CRITICAL: Board Disconnected",
+                        message: `Board ${clientAddr} has disconnected`,
+                        color: "red",
+                        autoClose: false,
+                    });
+            } else if (status === "done") setBoardStatus(clientAddr, "connected");
         } else if (parsedPayload[1] === "show") {
             if (parsedPayload[2] === "start") {
-                console.log("Show started");
-            } else if (parsedPayload[2] === "end") {
-                console.log("Show ended");
+                setBoardState(clientAddr, "online");
+            } else if (parsedPayload[2] === "complete") {
+                setBoardState(clientAddr, "done");
             } else if (parsedPayload[2] === "terminated") {
-                console.log("Show terminated");
+                setBoardStatus(clientAddr, "connected");
             }
+        } else if (parsedPayload[1] == "welcome") {
+            showNotification({
+                title: "Received WS Welcome Message",
+                message: message.payload,
+                color: "blue",
+            });
         }
     } else if (message.type === "refresh") {
         console.log(message.payload);

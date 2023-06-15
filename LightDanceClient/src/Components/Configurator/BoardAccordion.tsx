@@ -13,6 +13,8 @@ const ParseStatusToString = (status: BoardStatus) => {
             return "Processing data";
         case "disconnected":
             return "Disconnected";
+        case "inshow":
+            return "In show";
         default:
             return "Unknown";
     }
@@ -20,12 +22,14 @@ const ParseStatusToString = (status: BoardStatus) => {
 
 const ParseStatusToColor = (status: BoardStatus) => {
     switch (status) {
+        case "disconnected":
+            return "bg-gray-300";
         case "connected":
             return "bg-green-300";
         case "processing":
             return "bg-yellow-300";
-        case "disconnected":
-            return "bg-gray-300";
+        case "inshow":
+            return "bg-blue-300";
         default:
             return "bg-red-300";
     }

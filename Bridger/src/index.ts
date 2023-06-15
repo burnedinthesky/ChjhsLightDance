@@ -149,11 +149,11 @@ wss.on("connection", (ws: WebSocket, req) => {
             managerInstance = null;
             sendBridgerMessage("rpi", null, {
                 type: "notify",
-                payload: "manager;status;disconnected",
+                payload: "manager;disconnected",
             });
             sendBridgerMessage("esp", null, {
                 type: "notify",
-                payload: "manager;status;disconnected",
+                payload: "manager;disconnected",
             });
         } else if (Object.values(rpiInstances).find((obj) => obj.ws === ws)) {
             const clientAddr = Object.keys(rpiInstances).find((key) => rpiInstances[key].ws === ws);

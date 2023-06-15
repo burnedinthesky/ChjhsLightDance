@@ -17,15 +17,20 @@ export const ExecuteClientMessage = (
                 type: "notify",
                 payload: `${clientId};show;start`,
             });
-        } else if (message.payload === "showEnd") {
+        } else if (message.payload === "showComplete") {
             sendBridgerMessage("manager", null, {
                 type: "notify",
-                payload: `${clientId};show;end`,
+                payload: `${clientId};show;complete`,
             });
         } else if (message.payload === "showTerminate") {
             sendBridgerMessage("manager", null, {
                 type: "notify",
                 payload: `${clientId};show;terminated`,
+            });
+        } else if (message.payload === "managerConnected") {
+            sendBridgerMessage("manager", null, {
+                type: "notify",
+                payload: `${clientId};welcome`,
             });
         }
     } else if (message.type === "reply") {

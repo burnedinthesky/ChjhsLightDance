@@ -4,18 +4,20 @@ import { notifications, showNotification } from "@mantine/notifications";
 import { useEffect, useRef, useState } from "react";
 
 import { BaseDirectory, readBinaryFile } from "@tauri-apps/api/fs";
+import { useShowStore } from "../Stores/Show";
+import { sendWSMessage } from "../lib/wsPortal";
 
 interface ShowDisplayProps {
     showId: string | null;
     setShowId: React.Dispatch<React.SetStateAction<string | null>>;
 }
 
-const recieveStartTime = (startTime: Date) => {
+const setStartTime = () => {
     const now = new Date();
-    return new Date(now.getTime() + 10000);
+    return new Date(now.getTime() + 1000);
 };
 
-const loadAudio = (audioFile: string) => {
+const loadAudio = async (audioFile: string) => {
     return readBinaryFile(audioFile, { dir: BaseDirectory.AppData }).then((file) =>
         URL.createObjectURL(new Blob([file], { type: "audio/mpeg" }))
     );
@@ -24,54 +26,35 @@ const loadAudio = (audioFile: string) => {
 const ShowDisplay = ({ showId, setShowId }: ShowDisplayProps) => {
     const { boards, audioFile } = useBoardStore((state) => ({ boards: state.boards, audioFile: state.audioFile }));
 
-    const [showInitialized, setShowInitialized] = useState<boolean>(false);
     const [timeUntilStart, setTimeUntilStart] = useState<number | null>(null);
-    const [boardReady, setBoardReady] = useState<
-        Record<
-            string,
-            {
-                name: string;
-                ready: boolean;
-            }
-        >
-    >({});
-    const [showCompleted, setShowComplete] = useState<boolean>(false);
+
+    const { boardState, showState, initializeShow, completeShow } = useShowStore((state) => ({
+        boardState: state.boardState,
+        showState: state.showState,
+        initializeShow: state.initializeShow,
+        completeShow: state.completeShow,
+    }));
 
     const startTime = useRef<Date | null>(null);
     const audioRef = useRef<HTMLAudioElement | null>(null);
 
     useEffect(() => {
         notifications.clean();
-        boards.forEach((board) => {
-            setBoardReady((cur) => ({
-                ...cur,
-                [board.id]: {
-                    name: board.name,
-                    ready: false,
-                },
-            }));
-            setTimeout(() => {
-                setBoardReady((cur) => ({
-                    ...cur,
-                    [board.id]: {
-                        name: board.name,
-                        ready: true,
-                    },
-                }));
-            }, Math.floor(Math.random() * 7000) + 1000);
-        });
 
         loadAudio(audioFile!).then((src) => {
             if (audioRef.current === null) throw new Error("Audio ref is null");
             audioRef.current!.src = src;
-            setShowInitialized(true);
+            const startTimeDate = setStartTime();
+            initializeShow(
+                boards.map((board) => ({ id: board.id, name: board.name })),
+                startTimeDate.getTime()
+            );
+            startTime.current = startTimeDate;
         });
-
-        startTime.current = recieveStartTime(new Date());
     }, []);
 
     useEffect(() => {
-        if (!showInitialized) return;
+        if (showState === "initializing") return;
         const interval = setInterval(() => {
             if (!startTime.current) return;
             const now = new Date();
@@ -82,31 +65,31 @@ const ShowDisplay = ({ showId, setShowId }: ShowDisplayProps) => {
             }
         }, 100);
         return () => clearInterval(interval);
-    }, [showInitialized]);
+    }, [showState]);
 
     useEffect(() => {
-        if (!showInitialized || timeUntilStart !== 0) return;
+        if (showState !== "running" || timeUntilStart !== 0) return;
         if (audioRef.current === null) throw new Error("Audio ref is null");
 
-        console.log(timeUntilStart);
-        Object.values(boardReady).forEach((board) => {
-            if (board.ready) return;
-            showNotification({
-                title: "Show start aborted",
-                message: `Board ${board.name} is not ready!`,
-                color: "red",
-                autoClose: false,
-            });
-            setShowId(null);
+        Object.values(boardState).forEach((board) => {
+            if (board.ready === "pending") {
+                showNotification({
+                    title: "Show start aborted",
+                    message: `Board ${board.name} is not ready!`,
+                    color: "red",
+                    autoClose: false,
+                });
+                setShowId(null);
+            }
         });
         audioRef.current.play();
-    }, [showInitialized, timeUntilStart]);
+    }, [showState, timeUntilStart]);
 
     return (
         <Modal
             opened={true}
             onClose={() => {
-                if (showCompleted) setShowId(null);
+                if (showState === "complete") setShowId(null);
                 else
                     showNotification({
                         message: "Show is in progress, terminate the show to close modal!",
@@ -120,21 +103,27 @@ const ShowDisplay = ({ showId, setShowId }: ShowDisplayProps) => {
             <div className="w-full font-jbmono">
                 <h3 className="">Show ID: {showId!}</h3>
                 <div className="w-full flex flex-col gap-4">
-                    {showInitialized ? (
+                    {showState !== "initializing" ? (
                         <>
                             <p>
-                                {showCompleted
+                                {showState === "complete"
                                     ? "Show completed"
                                     : timeUntilStart !== null
                                     ? `Time until show start: ${timeUntilStart} msecs`
                                     : "Show in progress"}
                             </p>
                             <div className="mt-3 grid grid-cols-2 border border-slate-400 divide-x divide-y divide-slate-400">
-                                {Object.values(boardReady).map((board) => (
+                                {Object.values(boardState).map((board) => (
                                     <div className="p-2">
                                         <p>
                                             {board.name}:{" "}
-                                            {board.ready ? "Ready" : <span className="text-red-500">Pending conf</span>}
+                                            {board.ready === "done" ? (
+                                                <span className="text-green-500">Queue empty</span>
+                                            ) : board.ready === "online" ? (
+                                                <span className="text-blue-500">Ready</span>
+                                            ) : (
+                                                <span className="text-red-500">Pending conf</span>
+                                            )}
                                         </p>
                                     </div>
                                 ))}
@@ -148,13 +137,13 @@ const ShowDisplay = ({ showId, setShowId }: ShowDisplayProps) => {
             <audio
                 className={`w-full mt-4`}
                 ref={audioRef}
-                controls={showInitialized}
+                controls={showState !== "initializing"}
                 onEnded={() => {
-                    setShowComplete(true);
+                    completeShow();
                 }}
             />
             <div className="w-full flex justify-end gap-4 mt-4">
-                {showCompleted ? (
+                {showState === "complete" ? (
                     <Button
                         className=" font-jbmono bg-blue-500 hover:bg-blue-600 transition-colors duration-100"
                         size="xs"
@@ -188,6 +177,7 @@ const ShowDisplay = ({ showId, setShowId }: ShowDisplayProps) => {
                                     className=" font-jbmono bg-red-500 hover:bg-red-600 transition-colors duration-100"
                                     size="xs"
                                     onClick={() => {
+                                        sendWSMessage("showStop", "");
                                         showNotification({
                                             message: "Show terminated by user",
                                             color: "red",
