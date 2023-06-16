@@ -2,12 +2,22 @@ import * as http from "http";
 import * as WebSocket from "ws";
 import * as express from "express";
 import dotenv from "dotenv";
+import path from "path";
 
 import { ExecuteManagerMessage } from "./execute/manager";
 import { ExecuteClientMessage } from "./execute/client";
 import { BridgerMessageType, BoardTypes, MessageType, MessageZod, macAddrRegex } from "./messages.types";
 
-dotenv.config();
+const args = process.argv.slice(2);
+
+// Check if the absolute path is provided as an argument
+if (args.length > 0) {
+    const envPath = args[0];
+    console.log(`Loading .env file from: ${envPath}`);
+    dotenv.config({ path: envPath });
+} else {
+    dotenv.config();
+}
 
 const app_port = process.env.PORT || 8000;
 

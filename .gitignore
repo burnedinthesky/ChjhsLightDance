@@ -24,6 +24,11 @@ dist-ssr
 *.sln
 *.sw?
 
+# Builds
+**/build/
+**/dist/
+LightDanceClient/src-tauri/resources/bridger/bundle.cjs
+
 __pycache__/
 BridgeAPI/storage/
 

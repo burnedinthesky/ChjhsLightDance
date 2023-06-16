@@ -39,7 +39,7 @@
             ],
             "identifier": "com.chjhs.lightdance.mgr.dev",
             "targets": "all",
-            "resources": ["resources/*"]
+            "resources": ["./resources/**/*", "./resources/*"]
         },
         "security": {
             "csp": null

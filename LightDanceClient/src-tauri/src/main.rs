@@ -32,10 +32,15 @@ fn get_fragment_length(handle: tauri::AppHandle, fragpath: String) -> String {
         .to_string_lossy()
         .to_string();
 
-    let pyprog_loc = format!("{}/resources/cal_length.py", resource_path);
+    let executable_path = if cfg!(target_os = "windows") {
+        format!("{}/resources/py-win/cal_length.exe", resource_path)
+    } else if cfg!(target_os = "macos") {
+        format!("{}/resources/py-mac/cal_length", resource_path)
+    } else {
+        return "Unsupported OS".to_string();
+    };
 
-    let output = Command::new("python3")
-        .arg(pyprog_loc)
+    let output = Command::new(executable_path)
         .arg(fragpath)
         .output()
         .expect("failed to execute process");
@@ -64,11 +69,17 @@ fn compile_final_dance(handle: tauri::AppHandle, excels: String, startfrom: i32)
         .to_string_lossy()
         .to_string();
 
-    let pyprog_loc = format!("{}/resources/compile_dance.py", resource_path);
     let board_config_path = format!("{}/board_configs.json", app_data_dir);
 
-    let output = Command::new("python3")
-        .arg(pyprog_loc)
+    let executable_path = if cfg!(target_os = "windows") {
+        format!("{}/resources/py-win/compile_dance.exe", resource_path)
+    } else if cfg!(target_os = "macos") {
+        format!("{}/resources/py-mac/compile_dance", resource_path)
+    } else {
+        return "Unsupported OS".to_string();
+    };
+
+    let output = Command::new(executable_path)
         .arg(board_config_path)
         .arg(excels)
         .arg(startfrom.to_string())
@@ -91,6 +102,23 @@ fn main() {
             get_fragment_length,
             compile_final_dance
         ])
+        .setup(|app| {
+            let resource_path: String = app
+                .handle()
+                .path_resolver()
+                .resource_dir()
+                .unwrap_or_default()
+                .to_string_lossy()
+                .to_string();
+
+            Command::new("node")
+                .arg(format!("{}/resources/bridger/bundle.cjs", resource_path))
+                .arg(format!("{}/resources/bridger/.env", resource_path))
+                .spawn()
+                .expect("Failed to run script");
+
+            Ok(())
+        })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

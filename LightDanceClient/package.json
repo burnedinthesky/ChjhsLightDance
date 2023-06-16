@@ -1,5 +1,5 @@
 {
-    "name": "LightDanceClient",
+    "name": "light_dance_client",
     "private": true,
     "version": "1.0.0",
     "type": "module",
@@ -17,6 +17,7 @@
         "@mantine/hooks": "^6.0.11",
         "@mantine/notifications": "^6.0.11",
         "@tauri-apps/api": "^1.4.0",
+        "concurrently": "^8.2.0",
         "react": "^18.2.0",
         "react-dom": "^18.2.0",
         "uuid": "^9.0.0",
