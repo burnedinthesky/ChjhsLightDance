@@ -7,16 +7,21 @@ const { setConnected, logMessage, logPreConMessage, clearLogs } = useWSConvStore
 
 let reconnectAttempts = 0;
 
+const server_addr = import.meta.env.VITE_SERVER_ADDR;
+const manager_api_key = import.meta.env.VITE_MANAGER_API_KEY;
+
+console.log(server_addr);
+
 function connectWebSocket() {
     if (ws && ws.readyState === WebSocket.OPEN) return;
     logPreConMessage("Attempting to connect");
-    ws = new WebSocket("ws://localhost:45510");
+    ws = new WebSocket(`ws://${server_addr}`);
 
     ws.onopen = () => {
         clearLogs("on connection");
         reconnectAttempts = 0;
         setConnected(true);
-        sendWSMessage("initialize", "WJNRgVynX2FyUSfTskr4ihO5CNAx8wPOpmCy05Clgsk=");
+        sendWSMessage("initialize", manager_api_key, "Initialized connection");
     };
 
     ws.onmessage = (event) => {
@@ -25,7 +30,6 @@ function connectWebSocket() {
         const message = MessageZod.safeParse(objMessage);
         if (!message.success) {
             console.log(message.error);
-            // sendWSMessage("throw", "An error happened while parsing the message.");
             logMessage("rec", `An error happened while parsing the message: ${message.error.message}`);
         }
         handleWSMessage(objMessage);
@@ -44,7 +48,7 @@ function connectWebSocket() {
     };
 }
 
-function sendWSMessage(type: string, message: string) {
+function sendWSMessage(type: string, message: string, overwrite_log?: string) {
     if (!ws || ws.readyState !== WebSocket.OPEN) {
         throw new Error("WebSocket is not open");
     }
@@ -53,7 +57,7 @@ function sendWSMessage(type: string, message: string) {
         type,
         payload: message,
     });
-    logMessage("snd", sentMessage);
+    logMessage("snd", overwrite_log ?? sentMessage);
     ws.send(sentMessage);
 }
 

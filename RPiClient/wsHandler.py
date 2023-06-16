@@ -3,24 +3,21 @@ import websockets
 import json
 import socket
 
+import subprocess
 from queue import Queue
 from websockets.exceptions import ConnectionClosed
-from uuid import getnode as get_mac
 
 from parsers import parse_hardware_config, parse_light_config
 
-
 messageQueue = Queue(0)
 
-if not get_mac() == get_mac(): raise Exception("Unable to detect MAC address")
-mac_addr = "%012X" % get_mac()
+wlan0_output = subprocess.check_output(["ifconfig"], text=True)
+search_result = [line for line in wlan0_output.split('\n') if 'ether' in line]
+if not search_result: raise SystemError("Unable to find mac address for wlan0")
+mac_addr = search_result[0].split()[1]
+
 host_name = socket.gethostname()
 local_ip_addr = socket.gethostbyname(host_name)
-
-#Generate random mac address for testing
-import random
-mac_addr = "%012X" % random.randrange(16**12)
-print(mac_addr)
 
 
 def queue_message(type: str, message: str):
@@ -58,6 +55,10 @@ async def receive_messages(websocket, show, lighting_groups, connection_closed):
                     elif data[1] == "disconnected": show.terminate_show()
                     else: throw_ws_error("Invalid manager status")
                 else: throw_ws_error("Invalid notify type")
+            elif msgType == "calibrate":
+                queue_message("recieve", "calibrate")
+                cal_res = show.run_calibrate_time()
+                queue_message("reply", f"calibrate;complete;{json.dumps(cal_res)}")
             elif msgType == "flash":
                 queue_message("recieve", "flash")
                 payload = response["payload"]
@@ -72,7 +73,6 @@ async def receive_messages(websocket, show, lighting_groups, connection_closed):
             await close_connection(connection_closed)
             break
         except Exception as e:
-            print(e)
             queue_message("throw", f"An error occurred while receiving: {e}")
             
 

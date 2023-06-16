@@ -12,6 +12,7 @@ export const useBoardStore = create<{
     boards: BoardData[];
     audioFile: string | null;
     editSinceLastFlash: boolean;
+    localStorageLoadedInSession: boolean;
 
     loadFromLocalStorage(): Promise<void>;
     saveToLocalStorage(): void;
@@ -23,6 +24,7 @@ export const useBoardStore = create<{
     setBoardStatus(boardId: string, status: BoardStatus): void;
     renameBoard(boardId: string, newName: string): void;
     deleteBoard(boardId: string): void;
+    setBoardCalibrate(boardId: string, calibrate: boolean): void;
     compressAssignedNums(): void;
 
     createLG(boardId: string, name?: string): void;
@@ -36,6 +38,7 @@ export const useBoardStore = create<{
     boards: [],
     audioFile: null,
     editSinceLastFlash: false,
+    localStorageLoadedInSession: false,
 
     resetEditSinceLastFlash() {
         set((state) => ({
@@ -45,6 +48,8 @@ export const useBoardStore = create<{
     },
 
     async loadFromLocalStorage() {
+        if (get().localStorageLoadedInSession) return;
+
         if (!(await exists("board_configs.json", { dir: BaseDirectory.AppData })))
             await writeTextFile("board_configs.json", JSON.stringify({ boards: [], audio: null }), {
                 dir: BaseDirectory.AppData,
@@ -70,9 +75,11 @@ export const useBoardStore = create<{
             boards: result.data.boards.map((board) => ({
                 ...board,
                 status: "disconnected",
+                calibrated: false,
             })),
             audioFile: result.data.audio,
             editSinceLastFlash: true,
+            localStorageLoadedInSession: true,
         }));
 
         console.log("Loaded");
@@ -99,6 +106,7 @@ export const useBoardStore = create<{
             ip: ip,
             assignedNum: get().boards.length + 1,
             lightGroups: [],
+            calibrated: false,
         };
 
         set((state) => ({
@@ -142,6 +150,12 @@ export const useBoardStore = create<{
 
         get().compressAssignedNums();
         get().saveToLocalStorage();
+    },
+
+    setBoardCalibrate(boardId, calibrate) {
+        set((state) => ({
+            boards: state.boards.map((board) => (board.id === boardId ? { ...board, calibrated: calibrate } : board)),
+        }));
     },
 
     compressAssignedNums() {

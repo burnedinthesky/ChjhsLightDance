@@ -16,7 +16,7 @@ useShowStore.subscribe((state) => {
     showState = state.showState;
 });
 
-const { addBoard, linkConnectedBoard, setBoardStatus } = useBoardStore.getState();
+const { addBoard, linkConnectedBoard, setBoardStatus, setBoardCalibrate } = useBoardStore.getState();
 const { setRefreshedBoard } = useWSConvStore.getState();
 const { setBoardState } = useShowStore.getState();
 
@@ -49,6 +49,13 @@ export function handleWSMessage(message: MessageType) {
             } else if (parsedPayload[2] === "terminated") {
                 setBoardStatus(clientAddr, "connected");
             }
+        } else if (parsedPayload[1] == "calibrate") {
+            if (parsedPayload[2] === "processing") {
+                setBoardStatus(clientAddr, "processing");
+            } else if (parsedPayload[2] === "done") {
+                setBoardState(clientAddr, "online");
+                setBoardCalibrate(clientAddr, true);
+            }
         } else if (parsedPayload[1] == "welcome") {
             showNotification({
                 title: "Received WS Welcome Message",
@@ -65,6 +72,9 @@ export function handleWSMessage(message: MessageType) {
         });
         setRefreshedBoard(true);
     } else if (message.type === "throw") {
+        if (message.payload.split(";")[2] == "calibrate") {
+            setBoardStatus(message.payload.split(";")[0], "connected");
+        }
         showNotification({
             title: "Received WS Throw Message",
             message: message.payload,

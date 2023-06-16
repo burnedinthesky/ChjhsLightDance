@@ -20,6 +20,7 @@ export const BoardDataZod = z.object({
     ip: z.string(),
     assignedNum: z.number(),
     lightGroups: z.array(LightGroupDataZod),
+    calibrated: z.boolean(),
 });
 
 export type BoardData = z.infer<typeof BoardDataZod>;

@@ -32,12 +32,23 @@ export const ExecuteClientMessage = (
                 type: "notify",
                 payload: `${clientId};welcome`,
             });
+        } else if (message.payload === "calibrate") {
+            sendBridgerMessage("manager", null, {
+                type: "notify",
+                payload: `${clientId};calibrate;processing`,
+            });
         }
     } else if (message.type === "reply") {
-        if (message.payload === "flash") {
+        const payloadInit = message.payload.split(";")[0];
+        if (payloadInit === "flash") {
             sendBridgerMessage("manager", null, {
                 type: "notify",
                 payload: `${clientId};status;done`,
+            });
+        } else if (payloadInit === "calibrate") {
+            sendBridgerMessage("manager", null, {
+                type: "notify",
+                payload: `${clientId};calibrate;done`,
             });
         }
     } else if (message.type === "throw") {

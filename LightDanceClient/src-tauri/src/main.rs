@@ -102,23 +102,21 @@ fn main() {
             get_fragment_length,
             compile_final_dance
         ])
-        .setup(|app| {
-            let resource_path: String = app
-                .handle()
-                .path_resolver()
-                .resource_dir()
-                .unwrap_or_default()
-                .to_string_lossy()
-                .to_string();
-
-            Command::new("node")
-                .arg(format!("{}/resources/bridger/bundle.cjs", resource_path))
-                .arg(format!("{}/resources/bridger/.env", resource_path))
-                .spawn()
-                .expect("Failed to run script");
-
-            Ok(())
-        })
+        // .setup(|app| {
+        //     let resource_path: String = app
+        //         .handle()
+        //         .path_resolver()
+        //         .resource_dir()
+        //         .unwrap_or_default()
+        //         .to_string_lossy()
+        //         .to_string();
+        //     Command::new("node")
+        //         .arg(format!("{}/resources/bridger/bundle.cjs", resource_path))
+        //         .arg(format!("{}/resources/bridger/.env", resource_path))
+        //         .spawn()
+        //         .expect("Failed to run script");
+        //     Ok(())
+        // })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
