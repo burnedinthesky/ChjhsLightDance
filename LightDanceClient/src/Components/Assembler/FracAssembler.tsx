@@ -38,7 +38,7 @@ const FracAssembler = ({ selectedFrag }: FracAssemblerProps) => {
                             <p className="w-[40px] text-end px-2.5">X</p>
                         </div>
                         {fragmentsByOrder.map((frag, i) => (
-                            <Fragment key={frag.fragment.id}>
+                            <Fragment key={`${frag.fragment.id}-${i}`}>
                                 <button
                                     className={`w-full h-0.5 bg-slate-300 relative group cursor-pointer ${
                                         selectedFrag ? "hover:bg-blue-500" : "hover:bg-green-500"

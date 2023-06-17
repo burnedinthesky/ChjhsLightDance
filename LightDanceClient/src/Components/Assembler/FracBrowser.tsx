@@ -175,8 +175,8 @@ const FracBrowser = ({ selectedFrag, setSelectedFrag }: FracBrowserProps) => {
                     <Button
                         className="font-jbmono font-normal bg-red-500 hover:bg-red-600 transition-colors duration-100"
                         size="xs"
-                        onClick={() => {
-                            deleteFragFolder(deleteFolderModal!);
+                        onClick={async () => {
+                            await deleteFragFolder(deleteFolderModal!);
                             setDeleteFolderModal(null);
                         }}
                     >

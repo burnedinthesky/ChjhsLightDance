@@ -28,7 +28,12 @@ const LightConfig = z.object({
 
 export async function CompileDance(frags: UIFragment[]) {
     const parsedDance = (await invoke("compile_final_dance", {
-        excels: JSON.stringify(frags.map((f) => f.fragment.filePath)),
+        excels: JSON.stringify(
+            frags.map((f) => {
+                if (f.empty) return `empty;${f.fragment.length * 1000}`;
+                return `${f.fragment.filePath}`;
+            })
+        ),
         startfrom: 0,
     })) as string;
 

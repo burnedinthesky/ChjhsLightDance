@@ -19,12 +19,13 @@ export const useBoardStore = create<{
 
     resetEditSinceLastFlash(): void;
 
-    addBoard(mac_addr: string, ip: string, name?: string): void;
+    addBoard(mac_addr: string, ip: string | null, name?: string): void;
     linkConnectedBoard(boardId: string, ip: string): void;
     setBoardStatus(boardId: string, status: BoardStatus): void;
     renameBoard(boardId: string, newName: string): void;
     deleteBoard(boardId: string): void;
-    setBoardCalibrate(boardId: string, calibrate: boolean): void;
+    setBoardCalibrate(boardId: string, status: "none" | "calibrating" | "calibrated"): void;
+    setBoardOrder(newOrder: Record<string, number>): void;
     compressAssignedNums(): void;
 
     createLG(boardId: string, name?: string): void;
@@ -98,22 +99,20 @@ export const useBoardStore = create<{
         console.log("Writing to local!");
     },
 
-    addBoard(mac_addr: string, ip: string, name?: string) {
+    addBoard(mac_addr: string, ip: string | null, name?: string) {
         const newBoard: BoardData = {
-            id: mac_addr,
+            id: mac_addr.replaceAll(":", ""),
             name: name ?? `Board ${get().boards.length + 1}`,
-            status: "connected",
-            ip: ip,
+            status: "disconnected",
+            ip: ip ?? null,
             assignedNum: get().boards.length + 1,
             lightGroups: [],
-            calibrated: false,
+            calibrationStat: "none",
         };
 
         set((state) => ({
             boards: [...state.boards, newBoard],
         }));
-
-        console.log(get().boards);
 
         get().compressAssignedNums();
         get().saveToLocalStorage();
@@ -124,7 +123,7 @@ export const useBoardStore = create<{
         console.log(get().boards.find((board) => board.id === boardId));
         set((state) => ({
             boards: state.boards.map((board) =>
-                board.id === boardId ? { ...board, ip: ip, status: "connected" } : board
+                board.id === boardId ? { ...board, ip: ip, status: "connected", calibrationStat: "none" } : board
             ),
         }));
     },
@@ -133,6 +132,20 @@ export const useBoardStore = create<{
         set((state) => ({
             boards: state.boards.map((board) => (board.id === boardId ? { ...board, status: status } : board)),
         }));
+    },
+
+    setBoardOrder(updatedOrder) {
+        if (get().boards.some((brd) => !Object.keys(updatedOrder).includes(brd.id)))
+            throw new Error("Missing board ids");
+        set((state) => ({
+            boards: state.boards.map((brd) => ({
+                ...brd,
+                assignedNum: updatedOrder[brd.id],
+            })),
+        }));
+        console.log(get().boards);
+        get().compressAssignedNums();
+        get().saveToLocalStorage();
     },
 
     renameBoard(boardId, newName) {
@@ -152,22 +165,24 @@ export const useBoardStore = create<{
         get().saveToLocalStorage();
     },
 
-    setBoardCalibrate(boardId, calibrate) {
+    setBoardCalibrate(boardId, status) {
         set((state) => ({
-            boards: state.boards.map((board) => (board.id === boardId ? { ...board, calibrated: calibrate } : board)),
+            boards: state.boards.map((board) => (board.id === boardId ? { ...board, calibrationStat: status } : board)),
         }));
     },
 
     compressAssignedNums() {
         set((state) => ({
-            boards: state.boards.map((board, i) => ({
-                ...board,
-                assignedNum: i,
-                lightGroups: board.lightGroups.map((lg, i) => ({
-                    ...lg,
-                    assignedNum: i,
+            boards: state.boards
+                .sort((a, b) => a.assignedNum - b.assignedNum)
+                .map((board, i) => ({
+                    ...board,
+                    assignedNum: i + 1,
+                    lightGroups: board.lightGroups.map((lg, i) => ({
+                        ...lg,
+                        assignedNum: i + 1,
+                    })),
                 })),
-            })),
         }));
     },
 
@@ -239,8 +254,6 @@ export const useBoardStore = create<{
         const audioFileName = splitPath[splitPath.length - 1].replaceAll(" ", "_");
 
         await copyFile(filePath, `${audioFileName}`, { dir: BaseDirectory.AppData });
-
-        console.log(audioFileName);
 
         set((state) => ({
             ...state,

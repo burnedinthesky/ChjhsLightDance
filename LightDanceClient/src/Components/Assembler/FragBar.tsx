@@ -63,8 +63,14 @@ const FragBar = ({ frag, selectedFrag, setSelectedFrag }: FragBarProps) => {
                     <FolderOpenIcon className="w-6 text-blue-700" />
                 </ActionIcon>
                 <ActionIcon
-                    onClick={() => {
-                        deleteFragment(frag.id);
+                    onClick={async () => {
+                        await deleteFragment(frag.id).catch((err) =>
+                            showNotification({
+                                title: "Error while deleting fragment",
+                                message: err,
+                                color: "red",
+                            })
+                        );
                     }}
                 >
                     <XIcon className="w-6 text-blue-700" />

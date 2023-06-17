@@ -55,8 +55,8 @@ const AsmFragBar = ({ frag, index, prevLength }: AsmFragBarProps) => {
                 <p className="w-16 text-slate-800">{formatSeconds(prevLength)}</p>
                 <p></p>
                 <ActionIcon
-                    onClick={() => {
-                        removeFragOrder(frag.fragment.id, [index]);
+                    onClick={async () => {
+                        await removeFragOrder(frag.fragment.id, [index]);
                     }}
                 >
                     <XIcon className="w-6 text-blue-700" />

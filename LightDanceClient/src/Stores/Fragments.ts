@@ -12,7 +12,7 @@ import {
 } from "@tauri-apps/api/fs";
 import { appDataDir, join } from "@tauri-apps/api/path";
 
-import { notifications, showNotification } from "@mantine/notifications";
+import { showNotification } from "@mantine/notifications";
 import { invoke } from "@tauri-apps/api/tauri";
 
 export const useFragmentStore = create<{
@@ -24,11 +24,11 @@ export const useFragmentStore = create<{
 
     createFragment(fragName: string, fragPath: string, folder: string, order?: number[]): Promise<void>;
     createEmptyFragment(duration: number, order: number[]): void;
-    deleteFragment(fragID: string): void;
+    deleteFragment(fragID: string): Promise<void>;
 
     addFragmentOrder(fragID: string, order: number): void;
     swapFragmentOrder(order1: number, order2: number): void;
-    removeFragmentOrder(fragmentID: string, orders?: number[]): void;
+    removeFragmentOrder(fragmentID: string, orders?: number[]): Promise<void>;
     renameFragment(fragmentID: string, newName: string): void;
     compressFragmentOrder(): void;
 
@@ -38,7 +38,7 @@ export const useFragmentStore = create<{
 
     createFragFolder(folderName: string): void;
     renameFragFolder(folderName: string, newName: string): void;
-    deleteFragFolder(folderName: string): void;
+    deleteFragFolder(folderName: string): Promise<void>;
 }>((set, get) => ({
     fragments: [],
     folders: [],
@@ -80,9 +80,11 @@ export const useFragmentStore = create<{
             uuid: uuidv4(),
         };
 
+        console.log(data);
+
         writeTextFile("fragments.json", JSON.stringify(data), { dir: BaseDirectory.AppData }).catch((err) => {
             console.log(err);
-            notifications.show({
+            showNotification({
                 title: "Error",
                 message: "Auto-save failed, will try again next edit",
                 color: "red",
@@ -92,31 +94,24 @@ export const useFragmentStore = create<{
     async createFragment(fragName: string, fragPath: string, folder: string, order?: number[]) {
         if (!get().folders.find((f) => f.name === folder)) throw new Error("Folder not found");
         const fragmentId = uuidv4();
-        let fragmentPath = "";
+        if (!(await exists("frag_excels/", { dir: BaseDirectory.AppData }))) {
+            await createDir("frag_excels", { dir: BaseDirectory.AppData, recursive: true });
+        }
+        await copyFile(fragPath, await join("frag_excels", `frag-${fragmentId}.xlsx`), {
+            dir: BaseDirectory.AppData,
+        });
+        let fragmentPath = await join(await appDataDir(), "frag_excels", `frag-${fragmentId}.xlsx`);
 
-        (async () => {
-            if (!(await exists("frag_excels/", { dir: BaseDirectory.AppData }))) {
-                await createDir("frag_excels", { dir: BaseDirectory.AppData, recursive: true });
-            }
-            await copyFile(fragPath, await join("frag_excels", `frag-${fragmentId}.xlsx`), {
-                dir: BaseDirectory.AppData,
-            });
-            return await join(await appDataDir(), "frag_excels", `frag-${fragmentId}.xlsx`);
-        })()
-            .then((path: string) => {
-                fragmentPath = path;
-            })
-            .catch((err) => {
-                throw new Error(err);
-            });
+        console.log(fragmentPath);
 
         const returnedLength = await invoke("get_fragment_length", {
             fragpath: fragmentPath,
         });
         const [stdout, stderr] = (returnedLength as string).split(";;;");
         if (stderr.length) throw new Error(stderr);
-
+        console.log(stdout);
         const fragLength = parseInt(stdout) / 1000;
+        console.log(fragLength);
         const newFragment: UIFragment = {
             fragment: {
                 id: fragmentId,
@@ -157,25 +152,19 @@ export const useFragmentStore = create<{
         order.forEach((o) => get().addFragmentOrder(newEmptyFragment.fragment.id, o));
         get().saveToLocalStorage();
     },
-    deleteFragment(fragID: string) {
+    async deleteFragment(fragID: string) {
         const frag = get().fragments.find((f) => f.fragment.id === fragID);
         if (!frag) throw new Error("Fragment not found");
-        if (frag.empty)
-            set((state) => ({
-                ...state,
-                fragments: state.fragments.filter((frag) => frag.fragment.id !== fragID),
-            }));
-        else
-            (async () => {
-                await removeFile(`frag_excels/frag-${fragID}.xlsx`, {
-                    dir: BaseDirectory.AppData,
-                });
-            })().then(() => {
-                set((state) => ({
-                    ...state,
-                    fragments: state.fragments.filter((frag) => frag.fragment.id !== fragID),
-                }));
-            });
+
+        await removeFile(`frag_excels/frag-${fragID}.xlsx`, {
+            dir: BaseDirectory.AppData,
+        });
+
+        set((state) => ({
+            ...state,
+            fragments: state.fragments.filter((frag) => frag.fragment.id !== fragID),
+        }));
+
         get().compressFragmentOrder();
         get().saveToLocalStorage();
     },
@@ -183,16 +172,16 @@ export const useFragmentStore = create<{
     addFragmentOrder(fragID: string, order: number) {
         set((state) => ({
             ...state,
-            fragments: state.fragments.map((frag) =>
-                frag.fragment.id === fragID
-                    ? { ...frag, order: [...frag.order, order] }
-                    : frag.order.some((o) => o >= order)
-                    ? {
-                          ...frag,
-                          order: frag.order.map((o) => (o >= order ? o + 1 : o)),
-                      }
-                    : frag
-            ),
+            fragments: state.fragments.map((frag) => {
+                if (frag.fragment.id === fragID)
+                    return { ...frag, order: [...frag.order.map((o) => (o >= order ? o + 1 : o)), order] };
+                if (frag.order.some((o) => o >= order))
+                    return {
+                        ...frag,
+                        order: frag.order.map((o) => (o >= order ? o + 1 : o)),
+                    };
+                return frag;
+            }),
         }));
         get().compressFragmentOrder();
         get().saveToLocalStorage();
@@ -216,23 +205,21 @@ export const useFragmentStore = create<{
         });
         get().saveToLocalStorage();
     },
-    removeFragmentOrder(fragID: string, orders?: number[]) {
-        if (get().fragments.find((frag) => frag.fragment.id === fragID)?.empty) {
-            get().deleteFragment(fragID);
-            return;
-        }
-        set((state) => ({
-            ...state,
-            fragments: state.fragments.map((frag) => ({
-                ...frag,
-                order:
-                    frag.fragment.id === fragID
-                        ? orders
-                            ? frag.order.filter((o) => !orders.includes(o))
-                            : []
-                        : frag.order,
-            })),
-        }));
+    async removeFragmentOrder(fragID: string, orders?: number[]) {
+        if (get().fragments.find((frag) => frag.fragment.id === fragID)?.empty) await get().deleteFragment(fragID);
+        else
+            set((state) => ({
+                ...state,
+                fragments: state.fragments.map((frag) => ({
+                    ...frag,
+                    order:
+                        frag.fragment.id === fragID
+                            ? orders
+                                ? frag.order.filter((o) => !orders.includes(o))
+                                : []
+                            : frag.order,
+                })),
+            }));
         get().compressFragmentOrder();
         get().saveToLocalStorage();
     },
@@ -248,8 +235,10 @@ export const useFragmentStore = create<{
     compressFragmentOrder() {
         set((state) => {
             let orderNums: number[] = state.fragments.flatMap((frag) => frag.order).sort((a, b) => a - b);
+            console.log(orderNums);
             let mappedOrder: Record<number, number> = {};
             orderNums.forEach((num, i) => (mappedOrder[num] = i));
+            console.log(mappedOrder);
             return {
                 ...state,
                 fragments: state.fragments.map((frag) => ({
@@ -270,8 +259,7 @@ export const useFragmentStore = create<{
         return folders;
     },
     getFragmentByOrder() {
-        // console.log(get().loadFromLocalStorage());
-
+        console.log(get().fragments);
         const ret: { o: number; frag: UIFragment }[] = [];
         get().fragments.forEach((frag) => {
             frag.order.forEach((order) => {
@@ -312,13 +300,13 @@ export const useFragmentStore = create<{
         }));
         get().saveToLocalStorage();
     },
-    deleteFragFolder(folderName: string) {
+    async deleteFragFolder(folderName: string) {
         const folder = get().folders.find((fol) => fol.name === folderName);
         if (!folder) throw new Error("Folder not found");
-        get().fragments.forEach((frag) => {
+        for (const frag of get().fragments) {
             if (frag.folder?.id !== folder.id) return;
-            get().deleteFragment(frag.fragment.id);
-        });
+            await get().deleteFragment(frag.fragment.id);
+        }
         set((state) => ({
             ...state,
             fragments: state.fragments.filter((frag) => frag.folder?.id !== folder.id),
