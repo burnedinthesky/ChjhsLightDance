@@ -55,14 +55,15 @@ const LightGroupConfig = ({ selectedBoard }: LightGroupConfigProps) => {
                         setSelectedAddPin={setSelectedAddPin}
                     />
                 ))}
+
                 <button
-                    className="w-full bg-zinc-50 border border-zinc-400 rounded-lg py-3 px-7 flex items-center gap-2 font-jbmono"
+                    className="w-full bg-zinc-50 border font-jbmono text-zinc-800 border-zinc-400 rounded-lg flex gap-4 px-7  h-12 items-center"
                     onClick={() => {
                         createLG(selectedBoard!);
                     }}
                 >
-                    <PlusIcon className="w-4" />
-                    <p className="text-sm">Add LightGroup</p>
+                    <PlusIcon className="w-5" />
+                    <p className="">Add LightGroup</p>
                 </button>
             </div>
         </ScrollArea>

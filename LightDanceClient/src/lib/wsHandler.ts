@@ -16,7 +16,7 @@ useShowStore.subscribe((state) => {
     showState = state.showState;
 });
 
-const { addBoard, linkConnectedBoard, setBoardStatus, setBoardCalibrate } = useBoardStore.getState();
+const { linkConnectedBoard, setBoardStatus, setBoardCalibrate } = useBoardStore.getState();
 const { setRefreshedBoard } = useWSConvStore.getState();
 const { setBoardState } = useShowStore.getState();
 
@@ -29,7 +29,12 @@ export function handleWSMessage(message: MessageType) {
             if (status === "connected") {
                 if (boards.find((board) => board.id === clientAddr))
                     return linkConnectedBoard(clientAddr, parsedPayload[3]);
-                addBoard(clientAddr, parsedPayload[3]);
+                showNotification({
+                    title: "Unregistered Board Attempted To Connected",
+                    message: `Board ${clientAddr} has attempted to connect`,
+                    color: "orange",
+                    autoClose: false,
+                });
             } else if (status === "processing") setBoardStatus(clientAddr, status);
             else if (status === "disconnected") {
                 setBoardStatus(clientAddr, status);
@@ -51,10 +56,12 @@ export function handleWSMessage(message: MessageType) {
             }
         } else if (parsedPayload[1] == "calibrate") {
             if (parsedPayload[2] === "processing") {
+                setBoardCalibrate(clientAddr, "calibrating");
                 setBoardStatus(clientAddr, "processing");
             } else if (parsedPayload[2] === "done") {
+                console.log(parsedPayload);
                 setBoardState(clientAddr, "online");
-                setBoardCalibrate(clientAddr, true);
+                setBoardCalibrate(clientAddr, "calibrated");
             }
         } else if (parsedPayload[1] == "welcome") {
             showNotification({
@@ -64,16 +71,32 @@ export function handleWSMessage(message: MessageType) {
             });
         }
     } else if (message.type === "refresh") {
-        console.log(message.payload);
+        const unauthed_boards: string[] = [];
 
         message.payload.split(";").forEach((board) => {
             const [mac_addr, ip] = board.split(",");
+            if (!mac_addr) return;
+            if (!boards.find((b) => b.id === mac_addr)) return unauthed_boards.push(mac_addr);
             linkConnectedBoard(mac_addr, ip);
         });
+
+        if (unauthed_boards.length)
+            showNotification({
+                title: "Unauthorized Boards in Refresh",
+                message: `Boards ${unauthed_boards.join(" ")} found`,
+            });
         setRefreshedBoard(true);
     } else if (message.type === "throw") {
+        console.log(message.payload.split(";"));
         if (message.payload.split(";")[2] == "calibrate") {
-            setBoardStatus(message.payload.split(";")[0], "connected");
+            const boardId = message.payload.split(";")[0];
+            setBoardStatus(boardId, "connected");
+            setBoardCalibrate(boardId, "none");
+            return showNotification({
+                title: "Calibration Failed",
+                message: `Board ${boardId} failed to calibrate`,
+                color: "red",
+            });
         }
         showNotification({
             title: "Received WS Throw Message",

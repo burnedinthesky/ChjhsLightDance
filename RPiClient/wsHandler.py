@@ -2,12 +2,20 @@ import asyncio
 import websockets
 import json
 import socket
+import os
 
 import subprocess
 from queue import Queue
 from websockets.exceptions import ConnectionClosed
+from dotenv import load_dotenv
 
 from parsers import parse_hardware_config, parse_light_config
+
+load_dotenv()
+
+client_token = os.getenv("CLIENT_TOKEN")
+
+print(client_token)
 
 messageQueue = Queue(0)
 
@@ -15,6 +23,9 @@ wlan0_output = subprocess.check_output(["ifconfig"], text=True)
 search_result = [line for line in wlan0_output.split('\n') if 'ether' in line]
 if not search_result: raise SystemError("Unable to find mac address for wlan0")
 mac_addr = search_result[0].split()[1]
+mac_addr = mac_addr.replace(":", "").upper()
+
+print(f"Mac Address: {mac_addr}")
 
 host_name = socket.gethostname()
 local_ip_addr = socket.gethostbyname(host_name)
@@ -57,14 +68,18 @@ async def receive_messages(websocket, show, lighting_groups, connection_closed):
                 else: throw_ws_error("Invalid notify type")
             elif msgType == "calibrate":
                 queue_message("recieve", "calibrate")
+                await asyncio.sleep(1)
                 cal_res = show.run_calibrate_time()
-                queue_message("reply", f"calibrate;complete;{json.dumps(cal_res)}")
+                if cal_res != "error": queue_message("reply", f"calibrate;complete;{json.dumps(cal_res)}")
             elif msgType == "flash":
                 queue_message("recieve", "flash")
                 payload = response["payload"]
                 parse_hardware_config(payload, lighting_groups)
                 parse_light_config(payload["lightConfig"], lighting_groups)
                 queue_message("reply", "flash")
+            elif msgType == "throw":
+                print(f"Recieved throw: {msgPayload}")
+                queue_message("throw", msgPayload)
             else: 
                 throw_ws_error("Invalid message type")
                     
@@ -97,7 +112,7 @@ async def websocket_client(uri, show, lighting_groups):
             async with websockets.connect(uri) as websocket:
                 print("Connected")
                 while not messageQueue.empty(): messageQueue.get()
-                queue_message("initialize", f"pWFJ+anLDAgMqcuhQEaIHx1U9wMc8Zfge6JCpY6RkVk=;{mac_addr};{local_ip_addr}")
+                queue_message("initialize", f"{client_token};{mac_addr};{local_ip_addr}")
 
                 reconnect_delay = 1
                 connection_closed = asyncio.Event()

@@ -15,6 +15,12 @@ export const ExecuteManagerMessage = (
                 payload: JSON.stringify(objData[addr]),
             });
         });
+    } else if (message.type == "calibrate") {
+        const boardId = message.payload;
+        sendBridgerMessage("rpi", [boardId], {
+            type: "calibrate",
+            payload: "",
+        });
     } else if (message.type === "showStart") {
         const startTime = parseInt(message.payload);
         sendBridgerMessage("rpi", null, {

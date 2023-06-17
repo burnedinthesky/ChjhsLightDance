@@ -44,12 +44,13 @@ class Show:
             entries = [entry for entry in entries if len(entry)]
             entries = [entry[-4:-1] for entry in entries]
             self.calibrated = True
+            board_status = BoardStatus.IDLE
             return json.dumps(entries)
         except Exception as e:
+            board_status = BoardStatus.IDLE
             queue_message("throw", f"calibrate;{e}")
-        board_status = BoardStatus.IDLE
+            return "error"
 
-    
     def terminate_show(self):
         print(f"Terminating show")
         global board_status

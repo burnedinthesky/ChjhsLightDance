@@ -9,10 +9,12 @@ import { showNotification } from "@mantine/notifications";
 
 import ShowDisplay from "../Show";
 
-import { LoadingOverlay } from "@mantine/core";
+import { ActionIcon, LoadingOverlay } from "@mantine/core";
 import { useWSConvStore } from "../../Stores/WSConnection";
 import { sendWSMessage } from "../../lib/wsPortal";
 import { useShowStore } from "../../Stores/Show";
+import { PlusIcon } from "@heroicons/react/outline";
+import CreateBoard from "./CreateBoard";
 
 interface ConfAppProps {
     appMode: string;
@@ -76,6 +78,7 @@ const ConfApp = ({ appMode }: ConfAppProps) => {
                         <LoadingOverlay visible={!refreshedBoard} loaderProps={{ size: "sm" }} />
                         <BoardAccordion focused={focusedBoard} setFocused={setFocusedBoard} />
                     </div>
+                    <CreateBoard />
                     <h2 className="text-xl">Performance Configuration</h2>
                     <div className="w-full bg-zinc-50 border border-zinc-400 rounded-lg flex px-7 items-center">
                         <ShowConfigurator startShow={startShow} />

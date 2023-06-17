@@ -17,10 +17,10 @@ export const BoardDataZod = z.object({
     id: z.string(),
     name: z.string(),
     status: BoardStatusZod,
-    ip: z.string(),
+    ip: z.string().nullable(),
     assignedNum: z.number(),
     lightGroups: z.array(LightGroupDataZod),
-    calibrated: z.boolean(),
+    calibrationStat: z.enum(["none", "calibrating", "calibrated"]),
 });
 
 export type BoardData = z.infer<typeof BoardDataZod>;

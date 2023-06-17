@@ -41,6 +41,9 @@ function sendBridgerMessage(target: BoardTypes, ids: string[] | null, message: B
         else managerMsgQueue.push(jsonMessage);
         return;
     }
+    if (target === "rpi" && ids && !ids.every((id) => id in rpiInstances)) {
+        throw new Error("Error while sending message, invalid rpi id");
+    }
     const targets = ids ?? Object.keys(rpiInstances);
     targets.forEach((id) => {
         rpiInstances[id].ws.send(JSON.stringify(jsonMessage));
@@ -126,9 +129,10 @@ wss.on("connection", (ws: WebSocket, req) => {
 
         if (dataObject.type === "initialize") {
             const [apiKey, clientMacAddr, clientIp] = dataObject.payload.split(";");
-            if (apiKey !== process.env.CLIENT_API_KEY || !macAddrRegex.test(clientMacAddr)) {
+            if (apiKey !== process.env.CLIENT_API_KEY) {
                 return sendBridgerError("Failed to establish client status, please retry", undefined, ws);
-            }
+            } else if (!macAddrRegex.test(clientMacAddr))
+                return sendBridgerError("Invalid mac address, please retry", undefined, ws);
 
             if (dataObject.source === "rpi")
                 rpiInstances[clientMacAddr] = {
