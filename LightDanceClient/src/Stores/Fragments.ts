@@ -24,6 +24,7 @@ export const useFragmentStore = create<{
 
     createFragment(fragName: string, fragPath: string, folder: string, order?: number[]): Promise<void>;
     createEmptyFragment(duration: number, order: number[]): void;
+    reindexFragment(fragmentID: string): Promise<void>;
     deleteFragment(fragID: string): Promise<void>;
 
     addFragmentOrder(fragID: string, order: number): void;
@@ -102,16 +103,13 @@ export const useFragmentStore = create<{
         });
         let fragmentPath = await join(await appDataDir(), "frag_excels", `frag-${fragmentId}.xlsx`);
 
-        console.log(fragmentPath);
-
         const returnedLength = await invoke("get_fragment_length", {
             fragpath: fragmentPath,
         });
         const [stdout, stderr] = (returnedLength as string).split(";;;");
         if (stderr.length) throw new Error(stderr);
-        console.log(stdout);
         const fragLength = parseInt(stdout) / 1000;
-        console.log(fragLength);
+
         const newFragment: UIFragment = {
             fragment: {
                 id: fragmentId,
@@ -132,6 +130,7 @@ export const useFragmentStore = create<{
         order.forEach((o) => get().addFragmentOrder(newFragment.fragment.id, o));
         get().saveToLocalStorage();
     },
+
     createEmptyFragment(duration: number, order: number[]) {
         const newEmptyFragment: UIFragment = {
             fragment: {
@@ -152,6 +151,36 @@ export const useFragmentStore = create<{
         order.forEach((o) => get().addFragmentOrder(newEmptyFragment.fragment.id, o));
         get().saveToLocalStorage();
     },
+
+    async reindexFragment(fragmentID) {
+        const fragment = get().fragments.find((f) => f.fragment.id === fragmentID);
+        if (!fragment) throw new Error("Fragment not found");
+
+        const returnedLength = await invoke("get_fragment_length", {
+            fragpath: fragment.fragment.filePath,
+        });
+        const [stdout, stderr] = (returnedLength as string).split(";;;");
+        if (stderr.length) throw new Error(stderr);
+        const fragLength = parseInt(stdout) / 1000;
+
+        set((state) => ({
+            ...state,
+            fragments: state.fragments.map((frag) => {
+                if (frag.fragment.id === fragmentID)
+                    return {
+                        ...frag,
+                        fragment: {
+                            ...frag.fragment,
+                            length: fragLength,
+                        },
+                    };
+                return frag;
+            }),
+        }));
+
+        get().saveToLocalStorage();
+    },
+
     async deleteFragment(fragID: string) {
         const frag = get().fragments.find((f) => f.fragment.id === fragID);
         if (!frag) throw new Error("Fragment not found");

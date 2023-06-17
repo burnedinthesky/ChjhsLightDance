@@ -23,10 +23,10 @@ type ShowFlash = Record<
 
 const LightConfig = z.object({
     uuid: z.string(),
-    payload: z.record(z.string(), z.array(z.record(z.number(), z.string()))),
+    payload: z.record(z.string(), z.array(z.record(z.string(), z.string()))),
 });
 
-export async function CompileDance(frags: UIFragment[]) {
+export async function CompileDance(frags: UIFragment[], start_from?: number) {
     const parsedDance = (await invoke("compile_final_dance", {
         excels: JSON.stringify(
             frags.map((f) => {
@@ -34,7 +34,7 @@ export async function CompileDance(frags: UIFragment[]) {
                 return `${f.fragment.filePath}`;
             })
         ),
-        startfrom: 0,
+        startfrom: start_from ? start_from * 1000 : 0,
     })) as string;
 
     const [stdOut, stdErr] = parsedDance.split(";;;");

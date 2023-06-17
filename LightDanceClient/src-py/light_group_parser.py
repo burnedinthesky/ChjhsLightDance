@@ -16,9 +16,12 @@ class LightGroup():
         self.commands.append((time, f"setBrightness;{sp}"))
         last_brightness = sp
         for i in range(5, duration, 5):
+            if time+i < 0: continue
             new_brightness = round(sp + ((ep-sp) / duration) * i)
             if new_brightness == last_brightness: continue
+            last_brightness = new_brightness
             self.commands.append((time+i, f"setBrightness;{new_brightness}"))
+        self.commands.append((time+duration, f"setBrightness;{ep}"))
         self.brightness = ep
         
     def add_command(self, time, command):
@@ -27,14 +30,16 @@ class LightGroup():
         cmd = command
         if cmd[0] == "t":
             if cmd[1] != "0" and cmd[1] != "1": raise ValueError(f"Error at {time}: Invalid power state")
-            if self.power == int(cmd[1]): return
-            self.power = int(cmd[1])
+            arg = int(cmd[1])
+            if self.power == arg or time<0: return
+            self.power = arg
             self.commands.append((time, f"setPower;{cmd[1]}"))
         elif cmd[0] == "b":
-            if int(cmd[1]) < 0 or int(cmd[1]) > 10: raise ValueError(f"Error at {time}: Brightness must be between 0 and 10")
-            if self.brightness == int(cmd[1]): return
-            self.brightness = int(cmd[1])
-            self.commands.append((time, f"setBrightness;{cmd[1]*10}"))
+            arg = int(cmd[1])
+            if arg < 0 or arg > 10: raise ValueError(f"Error at {time}: Brightness must be between 0 and 10")
+            if self.brightness == arg or time<0: return
+            self.brightness = arg
+            self.commands.append((time, f"setBrightness;{arg*10}"))
         elif cmd[0] == "f":
             _, start_power, end_power, duration = cmd.split(";")
             self.handle_fade(time, int(start_power), int(end_power), int(duration) * 1000)
@@ -43,7 +48,7 @@ class LightGroup():
         if self.brightness == 0: self.power = False
         
     def get_length(self):
-        return self.commands[-1][0]
+        return int(self.commands[-1][0])
 
-    def export_str(self):
-        return ",".join([f"{{{cmd[0]}, {cmd[1]}}}" for cmd in self.commands])
+    def export_commands(self):
+        return [{cmd[0]: cmd[1]} for cmd in self.commands]

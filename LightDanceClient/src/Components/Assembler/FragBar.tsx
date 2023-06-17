@@ -1,7 +1,7 @@
 import { useState } from "react";
 
 import { ActionIcon, Radio } from "@mantine/core";
-import { FolderOpenIcon, PencilAltIcon, XIcon } from "@heroicons/react/outline";
+import { FolderOpenIcon, PencilAltIcon, RefreshIcon, XIcon } from "@heroicons/react/outline";
 import { RenameFragModal } from "./ConfModals";
 
 import { useFragmentStore } from "../../Stores/Fragments";
@@ -18,10 +18,14 @@ interface FragBarProps {
 }
 
 const FragBar = ({ frag, selectedFrag, setSelectedFrag }: FragBarProps) => {
-    const deleteFragment = useFragmentStore((state) => state.deleteFragment);
+    const { deleteFragment, reindexFragment } = useFragmentStore((state) => ({
+        deleteFragment: state.deleteFragment,
+        reindexFragment: state.reindexFragment,
+    }));
 
     const [renameModalTarget, setRenameModalTarget] = useState<string | null>(null);
     const [renameModalName, setRenameModalName] = useState<string>("");
+    const [reindexingFrag, setReindexingFrag] = useState<boolean>(false);
 
     return (
         <div className="w-full bg-slate-200 font-jbmono px-9 py-3 flex items-center justify-between">
@@ -49,10 +53,29 @@ const FragBar = ({ frag, selectedFrag, setSelectedFrag }: FragBarProps) => {
             </div>
             <div className="flex items-center gap-2">
                 <ActionIcon
+                    disabled={reindexingFrag}
+                    onClick={() => {
+                        setReindexingFrag(true);
+                        reindexFragment(frag.id)
+                            .catch((err) =>
+                                showNotification({
+                                    title: "Error while reindexing fragments",
+                                    message: `${err}`,
+                                    color: "red",
+                                })
+                            )
+                            .finally(() => setReindexingFrag(false));
+                    }}
+                >
+                    <RefreshIcon className={`w-6 text-blue-700 ${reindexingFrag ? "animate-spin" : ""}`} />
+                </ActionIcon>
+                <ActionIcon
                     onClick={async () => {
                         invoke("open_file_browser", {
                             path: await join(await appDataDir(), "frag_excels"),
-                        }).catch((err) => console.error(err));
+                        }).catch((err) =>
+                            showNotification({ title: "Error while opening file browser", message: err, color: "red" })
+                        );
                         showNotification({
                             title: "File Browser Opened",
                             message: `Look for file frag-${frag.id}.xlsx in the opened file browser.`,

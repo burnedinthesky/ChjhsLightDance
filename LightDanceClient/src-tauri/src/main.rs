@@ -47,9 +47,6 @@ fn get_fragment_length(handle: tauri::AppHandle, fragpath: String) -> String {
     let stdout = String::from_utf8(output.stdout).unwrap();
     let stderr = String::from_utf8(output.stderr).unwrap();
 
-    println!("stdout: {}", stdout);
-    println!("stderr: {}", stderr);
-
     format! {"{};;;{}", stdout, stderr}
 }
 
@@ -79,17 +76,16 @@ fn compile_final_dance(handle: tauri::AppHandle, excels: String, startfrom: i32)
         return "Unsupported OS".to_string();
     };
 
+    println!("{} {} {}", excels, board_config_path, startfrom.to_string());
+
     let output = Command::new(executable_path)
-        .arg(board_config_path)
         .arg(excels)
+        .arg(board_config_path)
         .arg(startfrom.to_string())
         .output()
         .expect("failed to execute process");
     let stdout = String::from_utf8(output.stdout).unwrap();
     let stderr = String::from_utf8(output.stderr).unwrap();
-
-    println!("stdout: {}", stdout);
-    println!("stderr: {}", stderr);
 
     format! {"{};;;{}", stdout, stderr}
 }
@@ -102,21 +98,21 @@ fn main() {
             get_fragment_length,
             compile_final_dance
         ])
-        // .setup(|app| {
-        //     let resource_path: String = app
-        //         .handle()
-        //         .path_resolver()
-        //         .resource_dir()
-        //         .unwrap_or_default()
-        //         .to_string_lossy()
-        //         .to_string();
-        //     Command::new("node")
-        //         .arg(format!("{}/resources/bridger/bundle.cjs", resource_path))
-        //         .arg(format!("{}/resources/bridger/.env", resource_path))
-        //         .spawn()
-        //         .expect("Failed to run script");
-        //     Ok(())
-        // })
+        .setup(|app| {
+            let resource_path: String = app
+                .handle()
+                .path_resolver()
+                .resource_dir()
+                .unwrap_or_default()
+                .to_string_lossy()
+                .to_string();
+            Command::new("node")
+                .arg(format!("{}/resources/bridger/bundle.cjs", resource_path))
+                .arg(format!("{}/resources/bridger/.env", resource_path))
+                .spawn()
+                .expect("Failed to run script");
+            Ok(())
+        })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

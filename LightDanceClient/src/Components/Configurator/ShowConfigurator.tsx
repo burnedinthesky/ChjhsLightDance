@@ -9,6 +9,7 @@ import { useBoardStore } from "../../Stores/Boards";
 import { CompileDance, FlashShowData } from "../../lib/showData";
 import { showNotification } from "@mantine/notifications";
 import { useFragmentStore } from "../../Stores/Fragments";
+import { useMetaDataStore } from "../../Stores/MetaData";
 
 interface ShowConfiguratorProps {
     startShow: () => void;
@@ -16,6 +17,7 @@ interface ShowConfiguratorProps {
 
 const ShowConfigurator = ({ startShow }: ShowConfiguratorProps) => {
     const [showConfigState, setShowConfigState] = useState<"Up to date" | "Outdated" | "Not compiled" | null>(null);
+    const [compiling, setCompiling] = useState<boolean>(false);
     const [flashing, setFlashing] = useState<boolean>(false);
 
     const { boards, audioFile, setAudioFile, deleteAudioFile, editSinceLastFlash, resetEditSinceLastFlash } =
@@ -31,6 +33,14 @@ const ShowConfigurator = ({ startShow }: ShowConfiguratorProps) => {
     const { getFragByOrder } = useFragmentStore((state) => ({
         getFragByOrder: state.getFragmentByOrder,
     }));
+
+    const { startShowFrom } = useMetaDataStore((state) => ({
+        startShowFrom: state.startShowFrom,
+    }));
+
+    useEffect(() => {
+        if (showConfigState === "Up to date") setShowConfigState("Outdated");
+    }, [startShowFrom]);
 
     useEffect(() => {
         (async () => {
@@ -53,16 +63,22 @@ const ShowConfigurator = ({ startShow }: ShowConfiguratorProps) => {
                     <Button
                         className="font-jbmono bg-blue-500 hover:bg-blue-600 transition-colors duration-100"
                         size="xs"
+                        loading={compiling}
                         onClick={() => {
-                            CompileDance(getFragByOrder())
-                                .then(() => setShowConfigState("Up to date"))
-                                .catch((e) =>
+                            setCompiling(true);
+                            CompileDance(getFragByOrder(), startShowFrom)
+                                .then(() => {
+                                    setShowConfigState("Up to date");
+                                    setCompiling(false);
+                                })
+                                .catch((e) => {
                                     showNotification({
                                         title: "Dance Compilation Error",
                                         message: e.toString(),
                                         color: "red",
-                                    })
-                                );
+                                    });
+                                    setCompiling(false);
+                                });
                         }}
                     >
                         Compile
@@ -145,7 +161,11 @@ const ShowConfigurator = ({ startShow }: ShowConfiguratorProps) => {
                             <Button
                                 className="w-[73px] font-jbmono bg-emerald-500 hover:bg-emerald-600 transition-colors duration-100"
                                 size="xs"
-                                disabled={!audioFile || editSinceLastFlash}
+                                disabled={
+                                    !audioFile ||
+                                    editSinceLastFlash ||
+                                    boards.some((board) => board.status !== "connected")
+                                }
                             >
                                 Start
                             </Button>
