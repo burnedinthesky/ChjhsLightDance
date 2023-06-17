@@ -1,9 +1,9 @@
-import { ActionIcon, Button, Chip, Modal, Popover, TextInput } from "@mantine/core";
-import { LightingGroupData } from "../../types/Boards";
+import { useState } from "react";
+import { ActionIcon, Button, Chip, Modal, TextInput } from "@mantine/core";
 import { PencilAltIcon, TrashIcon } from "@heroicons/react/outline";
 import AddLightBarPopover from "./AddLightBarPopover";
 import { useBoardStore } from "../../Stores/Boards";
-import { useState } from "react";
+import { LightingGroupData } from "../../types/Boards";
 
 interface LightGroupCardProps {
     config: LightingGroupData;
@@ -26,11 +26,12 @@ const LightGroupCard = ({
     openAddPins,
     setOpenAddPins,
 }: LightGroupCardProps) => {
-    const { boardLG, selBoardNum, setLGBars, renameLG } = useBoardStore((state) => ({
+    const { boardLG, selBoardNum, setLGBars, renameLG, deleteLG } = useBoardStore((state) => ({
         boardLG: selectedBoard ? state.boards.find((brd) => brd.id === selectedBoard)?.lightGroups ?? null : null,
         selBoardNum: state.boards.find((brd) => brd.id === selectedBoard)!.assignedNum,
         setLGBars: state.setLGBars,
         renameLG: state.renameLG,
+        deleteLG: state.deleteLG,
     }));
 
     const [newGroupName, setNewGroupName] = useState<string | null>(null);
@@ -47,13 +48,22 @@ const LightGroupCard = ({
                 >
                     <PencilAltIcon className="w-4 text-blue-800" />
                 </ActionIcon>
+                <ActionIcon
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        deleteLG(selectedBoard!, config.id);
+                    }}
+                >
+                    <TrashIcon className="w-4 text-blue-800" />
+                </ActionIcon>
             </div>
             <p className="mt-2 mb-1">ID: {`B${selBoardNum}G${config.assignedNum}`}</p>
             <div className="flex items-center">
                 <p>Lights:</p>
                 <div className="ml-2 flex-grow flex gap-2 flex-wrap">
-                    {config.lights.map((light) => (
+                    {config.lights.map((light, i) => (
                         <Chip
+                            key={i}
                             color="red"
                             classNames={{ label: "font-jbmono" }}
                             disabled={selLights ? selLights.id !== config.id : false}
@@ -67,10 +77,11 @@ const LightGroupCard = ({
                                 if (selLights.lights.includes(light)) {
                                     setSelLights((cur) => {
                                         if (!cur) return null;
-                                        return cur?.lights.length > 1
+                                        return cur.lights.length > 1
                                             ? { id: cur.id, lights: cur.lights.filter((l) => l !== light) }
                                             : null;
                                     });
+                                    return;
                                 }
                                 setSelLights({
                                     id: selLights.id,
@@ -92,6 +103,7 @@ const LightGroupCard = ({
                                         boardLG!.find((val) => val.id === selLights.id) as LightingGroupData
                                     ).lights.filter((val) => !selLights.lights.includes(val))
                                 );
+                                setSelLights(null);
                             }}
                         >
                             <TrashIcon className="w-5 text-red-600" />

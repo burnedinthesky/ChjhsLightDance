@@ -197,8 +197,8 @@ export const useBoardStore = create<{
                               ...board.lightGroups,
                               {
                                   id: uuidv4(),
-                                  name: name ? name : `Group ${board.lightGroups.length}`,
-                                  assignedNum: board.lightGroups.length,
+                                  name: name ? name : `Group ${board.lightGroups.length + 1}`,
+                                  assignedNum: board.lightGroups.length + 1,
                                   lights: [],
                               },
                           ],
