@@ -1,7 +1,6 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 use std::process::Command;
-// use tauri::PathResolver;
 
 #[tauri::command]
 fn get_lan_ip() -> String {
@@ -106,11 +105,15 @@ fn main() {
                 .unwrap_or_default()
                 .to_string_lossy()
                 .to_string();
-            Command::new("node")
-                .arg(format!("{}/resources/bridger/bundle.cjs", resource_path))
-                .arg(format!("{}/resources/bridger/.env", resource_path))
+            tauri::api::process::Command::new_sidecar("node")
+                .expect("failed to create `node` binary command")
+                .args([
+                    format!("{}/resources/bridger/bundle.cjs", resource_path),
+                    format!("{}/resources/bridger/.env", resource_path),
+                ])
                 .spawn()
                 .expect("Failed to run script");
+
             Ok(())
         })
         .run(tauri::generate_context!())
