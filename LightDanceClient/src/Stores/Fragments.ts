@@ -107,6 +107,8 @@ export const useFragmentStore = create<{
             fragpath: fragmentPath,
         });
         const [stdout, stderr] = (returnedLength as string).split(";;;");
+        console.log(stdout, stderr);
+
         if (stderr.length) throw new Error(stderr);
         const fragLength = parseInt(stdout) / 1000;
 
@@ -160,6 +162,7 @@ export const useFragmentStore = create<{
             fragpath: fragment.fragment.filePath,
         });
         const [stdout, stderr] = (returnedLength as string).split(";;;");
+        console.log(stdout, stderr);
         if (stderr.length) throw new Error(stderr);
         const fragLength = parseInt(stdout) / 1000;
 
@@ -185,9 +188,10 @@ export const useFragmentStore = create<{
         const frag = get().fragments.find((f) => f.fragment.id === fragID);
         if (!frag) throw new Error("Fragment not found");
 
-        await removeFile(`frag_excels/frag-${fragID}.xlsx`, {
-            dir: BaseDirectory.AppData,
-        });
+        if (!frag.empty)
+            await removeFile(`frag_excels/frag-${fragID}.xlsx`, {
+                dir: BaseDirectory.AppData,
+            });
 
         set((state) => ({
             ...state,
@@ -235,7 +239,12 @@ export const useFragmentStore = create<{
         get().saveToLocalStorage();
     },
     async removeFragmentOrder(fragID: string, orders?: number[]) {
-        if (get().fragments.find((frag) => frag.fragment.id === fragID)?.empty) await get().deleteFragment(fragID);
+        const targetFrag = get().fragments.find((frag) => frag.fragment.id === fragID);
+        if (!targetFrag) throw new Error("Fragment not found");
+
+        console.log(targetFrag);
+
+        if (targetFrag.empty) await get().deleteFragment(fragID);
         else
             set((state) => ({
                 ...state,
@@ -252,6 +261,7 @@ export const useFragmentStore = create<{
         get().compressFragmentOrder();
         get().saveToLocalStorage();
     },
+
     renameFragment(fragmentID: string, newName: string) {
         set((state) => ({
             ...state,

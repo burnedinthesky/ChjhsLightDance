@@ -1,11 +1,23 @@
 import board
-import busio
-import adafruit_pca9685
 
-i2c = busio.I2C(board.SCL, board.SDA)
+dev_mode = False
 
-pca = adafruit_pca9685.PCA9685(i2c)
-pca.frequency = 180
+if dev_mode:
+    class Channel():
+        duty_cycle = 0
+    class PCA():
+        channels = [Channel() for i in range(16)]
+
+    pca = PCA()
+else:
+    import busio
+    import adafruit_pca9685
+
+    i2c = busio.I2C(board.SCL, board.SDA)
+
+    pca = adafruit_pca9685.PCA9685(i2c)
+    pca.frequency = 1000
+
 
 class LightBar:
     def __init__(self, hw_channel, given_id):
@@ -17,25 +29,27 @@ class LightBar:
         return self.powered
 
     def set_power(self, power):
-        self.channel.duty_cycle = 0xffff * power
+        print(f"Setting power of light bar {self.id} to {power}")
+        self.channel.duty_cycle = 1024 * power
         self.powered = power
 
-    def set_opacity(self, level):
+    def set_brightness(self, level):
         if level < 0 or level > 100:
             raise ValueError("Power opacity must be between levels 0 to 100")
-        self.channel.duty_cycle = int(0xffff * (level / 100))
+        print(f"Setting brightness of light bar {self.id} to {level}")
+        self.channel.duty_cycle = 307 + int(230 * (level / 100))
         
 class LightingGroup:
     def __init__(self, hardware_ids):
-        self.light_bars = [LightBar(hw_id, i) for i, hw_id in enumerate(hardware_ids)]
+        self.light_bars = [LightBar(int(hw_id), i) for i, hw_id in enumerate(hardware_ids)]
 
     def set_power(self, state):
         for bar in self.light_bars:
             bar.set_power(state)
 
-    def set_opacity(self, level):
+    def set_brightness(self, level):
         for bar in self.light_bars:
-            bar.set_opacity(level)
+            bar.set_brightness(level)
 
 def initialize_lighting_groups(config, lighting_groups):
     for group in config:

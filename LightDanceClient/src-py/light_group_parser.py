@@ -6,7 +6,6 @@ class LightGroup():
     def __init__(self, id) -> None:
         self.id = id
         self.commands = []
-        self.power = False
         self.brightness = 0
 
     def handle_fade(self, time, start_power, end_power, duration):
@@ -25,14 +24,16 @@ class LightGroup():
         self.brightness = ep
         
     def add_command(self, time, command):
-        if len(self.commands) and time-self.commands[-1][0] < 5:
-            raise ValueError(f"Error at {time}: Time between commands is less than {config['minTime']}ms")
+        if len(self.commands) and abs(time-self.commands[-1][0]) < 5:
+            time += 5 - abs(time-self.commands[-1][0])
+            # raise ValueError(f"Error at {time}: Time between commands is less than {config['minTime']}ms")
+
         cmd = command
         if cmd[0] == "t":
             if cmd[1] != "0" and cmd[1] != "1": raise ValueError(f"Error at {time}: Invalid power state")
             arg = int(cmd[1])
-            if self.power == arg or time<0: return
-            self.power = arg
+            if self.brightness == arg * 10 or time<0: return
+            self.brightness = arg * 10
             self.commands.append((time, f"setPower;{cmd[1]}"))
         elif cmd[0] == "b":
             arg = int(cmd[1])
@@ -45,7 +46,6 @@ class LightGroup():
             self.handle_fade(time, int(start_power), int(end_power), int(duration) * 1000)
         else:
             raise ValueError("Invalid command type")
-        if self.brightness == 0: self.power = False
         
     def get_length(self):
         return int(self.commands[-1][0])

@@ -38,6 +38,7 @@ export async function CompileDance(frags: UIFragment[], start_from?: number) {
     })) as string;
 
     const [stdOut, stdErr] = parsedDance.split(";;;");
+    console.log(stdOut, stdErr);
     if (stdErr) throw new Error(stdErr);
     const parsedDanceObj = JSON.parse(stdOut);
     const data: z.infer<typeof LightConfig> = {

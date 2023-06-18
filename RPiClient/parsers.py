@@ -1,4 +1,4 @@
-from queue import Queue
+import collections
 from lightGroups import initialize_lighting_groups
 
 def parse_command(target_lg, command):    
@@ -9,7 +9,7 @@ def parse_command(target_lg, command):
     if command_type == "setPower":
         return lambda: target_lg.set_power(int(params[0]))
     elif command_type == 'setBrightness':
-        return lambda: target_lg.set_opacity(int(params[0]))
+        return lambda: target_lg.set_brightness(int(params[0]))
     else:
         raise ValueError('Invalid command type')
         
@@ -28,9 +28,8 @@ def parse_light_config(config, lighting_groups):
             time, command = float(list(event.keys())[0]), list(event.values())[0]
             temp_command.append((time, parse_command(lighting_groups[groupId], command)))
     temp_command.sort(key=lambda x: x[0]) 
+    temp_command.reverse()
 
-    cmdQueue = Queue(len(temp_command))
-    for command in temp_command:
-        cmdQueue.put(command)
+    cmdQueue = collections.deque(temp_command)
 
     return cmdQueue

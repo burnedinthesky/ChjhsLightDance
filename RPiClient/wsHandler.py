@@ -55,6 +55,8 @@ async def receive_messages(websocket, show, lighting_groups, connection_closed):
             msgType = response["type"]
             msgPayload = response["payload"]
 
+            print(f"Recieved message: {msgType} {msgPayload}")
+
             if msgType == "notify":
                 data = msgPayload.split(";")
                 if data[0] == "show":
@@ -73,9 +75,11 @@ async def receive_messages(websocket, show, lighting_groups, connection_closed):
                 if cal_res != "error": queue_message("reply", f"calibrate;complete;{json.dumps(cal_res)}")
             elif msgType == "flash":
                 queue_message("recieve", "flash")
-                payload = response["payload"]
+                payload = eval(response["payload"])
                 parse_hardware_config(payload, lighting_groups)
-                parse_light_config(payload["lightConfig"], lighting_groups)
+                show.set_show_lights(
+                    parse_light_config(payload["lightConfig"], lighting_groups)
+                )
                 queue_message("reply", "flash")
             elif msgType == "throw":
                 print(f"Recieved throw: {msgPayload}")
@@ -124,6 +128,7 @@ async def websocket_client(uri, show, lighting_groups):
         except ConnectionClosed: pass
         except Exception as e:
             print(f"An error occurred while connecting: {e}")
+            print(f"Reconnecting in {reconnect_delay} seconds")
 
         await asyncio.sleep(reconnect_delay)
         reconnect_delay *= 2

@@ -17,6 +17,7 @@ export const useBoardStore = create<{
     loadFromLocalStorage(): Promise<void>;
     saveToLocalStorage(): void;
 
+    setEditSinceLastFlash(edit: boolean): void;
     resetEditSinceLastFlash(): void;
 
     addBoard(mac_addr: string, ip: string | null, name?: string): void;
@@ -40,13 +41,6 @@ export const useBoardStore = create<{
     audioFile: null,
     editSinceLastFlash: false,
     localStorageLoadedInSession: false,
-
-    resetEditSinceLastFlash() {
-        set((state) => ({
-            ...state,
-            editSinceLastFlash: false,
-        }));
-    },
 
     async loadFromLocalStorage() {
         if (get().localStorageLoadedInSession) return;
@@ -97,6 +91,20 @@ export const useBoardStore = create<{
             });
         });
         console.log("Writing to local!");
+    },
+
+    resetEditSinceLastFlash() {
+        set((state) => ({
+            ...state,
+            editSinceLastFlash: false,
+        }));
+    },
+
+    setEditSinceLastFlash(edit) {
+        set((state) => ({
+            ...state,
+            editSinceLastFlash: edit,
+        }));
     },
 
     addBoard(mac_addr: string, ip: string | null, name?: string) {

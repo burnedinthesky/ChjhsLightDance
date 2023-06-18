@@ -164,7 +164,10 @@ const ShowConfigurator = ({ startShow }: ShowConfiguratorProps) => {
                                 disabled={
                                     !audioFile ||
                                     editSinceLastFlash ||
-                                    boards.some((board) => board.status !== "connected")
+                                    boards.some(
+                                        (board) =>
+                                            board.status !== "connected" || board.calibrationStat !== "calibrated"
+                                    )
                                 }
                             >
                                 Start

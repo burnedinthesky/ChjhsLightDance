@@ -9,7 +9,7 @@ import { sendWSMessage } from "../lib/wsPortal";
 
 const setStartTime = () => {
     const now = new Date();
-    return new Date(now.getTime() + 1000);
+    return new Date(now.getTime() + 5000);
 };
 
 const loadAudio = async (audioFile: string) => {
@@ -49,6 +49,11 @@ const ShowDisplay = () => {
             startTime.current = startTimeDate;
         });
     }, []);
+
+    useEffect(() => {
+        if (showId !== null || !audioRef.current) return;
+        audioRef.current.pause();
+    }, [showId]);
 
     useEffect(() => {
         if (showState === "initializing") return;
@@ -168,7 +173,9 @@ const ShowDisplay = () => {
                                 <Button
                                     className=" font-jbmono bg-red-500 hover:bg-red-600 transition-colors duration-100"
                                     size="xs"
-                                    onClick={() => {}}
+                                    onClick={() => {
+                                        endShow("terminated");
+                                    }}
                                 >
                                     Terminate
                                 </Button>

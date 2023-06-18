@@ -27,6 +27,8 @@ dist-ssr
 # Builds
 **/build/
 **/dist/
+**/node-x86_64-apple-darwin
+**/node-aarch64-apple-darwin
 LightDanceClient/src-tauri/resources/bridger/bundle.cjs
 
 __pycache__/

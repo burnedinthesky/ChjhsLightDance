@@ -29,12 +29,13 @@ export function handleWSMessage(message: MessageType) {
             if (status === "connected") {
                 if (boards.find((board) => board.id === clientAddr))
                     return linkConnectedBoard(clientAddr, parsedPayload[3]);
-                showNotification({
-                    title: "Unregistered Board Attempted To Connected",
-                    message: `Board ${clientAddr} has attempted to connect`,
-                    color: "orange",
-                    autoClose: false,
-                });
+                else
+                    showNotification({
+                        title: "Unregistered Board Attempted To Connected",
+                        message: `Board ${clientAddr} has attempted to connect`,
+                        color: "orange",
+                        autoClose: false,
+                    });
             } else if (status === "processing") setBoardStatus(clientAddr, status);
             else if (status === "disconnected") {
                 setBoardStatus(clientAddr, status);
@@ -59,9 +60,8 @@ export function handleWSMessage(message: MessageType) {
                 setBoardCalibrate(clientAddr, "calibrating");
                 setBoardStatus(clientAddr, "processing");
             } else if (parsedPayload[2] === "done") {
-                console.log(parsedPayload);
-                setBoardState(clientAddr, "online");
                 setBoardCalibrate(clientAddr, "calibrated");
+                setBoardStatus(clientAddr, "connected");
             }
         } else if (parsedPayload[1] == "welcome") {
             showNotification({

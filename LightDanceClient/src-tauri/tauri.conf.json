@@ -14,8 +14,7 @@
         "allowlist": {
             "all": false,
             "shell": {
-                "all": true,
-                "scope": [{ "name": "binaries/node", "sidecar": true }]
+                "all": true
             },
             "dialog": { "all": true },
             "fs": {
@@ -26,7 +25,6 @@
         },
         "bundle": {
             "active": true,
-            "externalBin": ["binaries/node"],
             "icon": [
                 "icons/32x32.png",
                 "icons/128x128.png",
@@ -39,8 +37,9 @@
             "resources": [
                 "./resources/bridger/.env",
                 "./resources/bridger/bundle.cjs",
-                "./resources/py-mac/cal_length",
-                "./resources/py-mac/compile_dance"
+                "./resources/py-scripts/light_group_parser.py",
+                "./resources/py-scripts/cal_length.py",
+                "./resources/py-scripts/compile_dance.py"
             ]
         },
         "security": {

@@ -24,8 +24,9 @@ const ConfApp = ({ appMode }: ConfAppProps) => {
     const [lANIp, setLANIp] = useState<string>("Loading");
     const [focusedBoard, setFocusedBoard] = useState<string | null>(null);
 
-    const { loadFromLocalStorage } = useBoardStore((state) => ({
+    const { loadFromLocalStorage, setEditSinceLastFlash } = useBoardStore((state) => ({
         loadFromLocalStorage: state.loadFromLocalStorage,
+        setEditSinceLastFlash: state.setEditSinceLastFlash,
     }));
 
     const { refreshedBoard, setRefreshedBoard } = useWSConvStore((state) => ({
@@ -81,7 +82,12 @@ const ConfApp = ({ appMode }: ConfAppProps) => {
                     <CreateBoard />
                     <h2 className="text-xl">Performance Configuration</h2>
                     <div className="w-full bg-zinc-50 border border-zinc-400 rounded-lg flex px-7 items-center">
-                        <ShowConfigurator startShow={startShow} />
+                        <ShowConfigurator
+                            startShow={() => {
+                                startShow();
+                                setEditSinceLastFlash(true);
+                            }}
+                        />
                     </div>
                 </div>
 

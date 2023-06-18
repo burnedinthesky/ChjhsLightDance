@@ -3,10 +3,10 @@ import asyncio
 import subprocess
 import os
 import json
+import collections
 from dotenv import load_dotenv
 load_dotenv()
 
-from queue import Queue
 from enum import Enum
 
 from lightGroups import reset_lighting_groups
@@ -32,20 +32,18 @@ class Show:
         board_status = BoardStatus.PLAYING
         queue_message("recieve", "showStart")
 
+    def set_show_lights(self, lightQueue):
+        global commands
+        commands = lightQueue
+
     def run_calibrate_time(self):
         global board_status
         board_status = BoardStatus.PROCESSING
         try:
             subprocess.run(["sudo", "sntp", server_ip])
-            ntpq_out = subprocess.check_output(["sudo", "ntpq", "-p"], text=True)
-            server_entries = [line for line in ntpq_out.split("\n") if server_ip in line]
-            if not server_entries: raise SystemError("Unable to find server entry in ntpq output")
-            entries = [line.split() for line in server_entries]
-            entries = [entry for entry in entries if len(entry)]
-            entries = [entry[-4:-1] for entry in entries]
             self.calibrated = True
             board_status = BoardStatus.IDLE
-            return json.dumps(entries)
+            return json.dumps("")
         except Exception as e:
             board_status = BoardStatus.IDLE
             queue_message("throw", f"calibrate;{e}")
@@ -63,30 +61,36 @@ class Show:
         global board_status, lighting_groups
         current_time = time.time() * 1000
         time_past_start = current_time - self.start_time
-        if time_past_start > 0 and commands.empty():
+        if time_past_start > 0 and len(commands) == 0:
             board_status = BoardStatus.IDLE
             reset_lighting_groups(lighting_groups)
             queue_message("recieve", "showComplete")
             print("Done!")
             return
-        while not commands.empty() and commands[0][0] < time_past_start:
-            _, command = commands.get()
+        while len(commands) and commands[-1][0] < time_past_start:
+            print(f"executing command at {time_past_start}")
+            _, command = commands.pop()
             command()
 
 lighting_groups = {}
-commands = Queue(0)
+commands = collections.deque()
 
 board_status:BoardStatus = BoardStatus.IDLE
 
 show = Show()
+
+latest_command = len(commands)
 
 async def ws_main():
     uri = f"ws://{server_ip}:{server_port}/"
     await websocket_client(uri, show, lighting_groups)
 
 async def show_loop():
-    global board_status
+    global board_status, latest_command
     while True:
+        if latest_command != len(commands):
+            latest_command = len(commands)
+            print(f"Commands Updated: {latest_command}")
         if board_status == BoardStatus.PLAYING:
             show.show_step()  
         await asyncio.sleep(0.001)

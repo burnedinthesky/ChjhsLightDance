@@ -31,15 +31,11 @@ fn get_fragment_length(handle: tauri::AppHandle, fragpath: String) -> String {
         .to_string_lossy()
         .to_string();
 
-    let executable_path = if cfg!(target_os = "windows") {
-        format!("{}/resources/py-win/cal_length.exe", resource_path)
-    } else if cfg!(target_os = "macos") {
-        format!("{}/resources/py-mac/cal_length", resource_path)
-    } else {
-        return "Unsupported OS".to_string();
-    };
-
-    let output = Command::new(executable_path)
+    let output = Command::new("python")
+        .arg(format!(
+            "{}/resources/py-scripts/cal_length.py",
+            resource_path,
+        ))
         .arg(fragpath)
         .output()
         .expect("failed to execute process");
@@ -67,17 +63,13 @@ fn compile_final_dance(handle: tauri::AppHandle, excels: String, startfrom: i32)
 
     let board_config_path = format!("{}/board_configs.json", app_data_dir);
 
-    let executable_path = if cfg!(target_os = "windows") {
-        format!("{}/resources/py-win/compile_dance.exe", resource_path)
-    } else if cfg!(target_os = "macos") {
-        format!("{}/resources/py-mac/compile_dance", resource_path)
-    } else {
-        return "Unsupported OS".to_string();
-    };
-
     println!("{} {} {}", excels, board_config_path, startfrom.to_string());
 
-    let output = Command::new(executable_path)
+    let output = Command::new("python")
+        .arg(format!(
+            "{}/resources/py-scripts/compile_dance.py",
+            resource_path,
+        ))
         .arg(excels)
         .arg(board_config_path)
         .arg(startfrom.to_string())
@@ -97,25 +89,23 @@ fn main() {
             get_fragment_length,
             compile_final_dance
         ])
-        .setup(|app| {
-            let resource_path: String = app
-                .handle()
-                .path_resolver()
-                .resource_dir()
-                .unwrap_or_default()
-                .to_string_lossy()
-                .to_string();
-            tauri::api::process::Command::new_sidecar("node")
-                .expect("failed to create `node` binary command")
-                .args([
-                    format!("{}/resources/bridger/bundle.cjs", resource_path),
-                    format!("{}/resources/bridger/.env", resource_path),
-                ])
-                .spawn()
-                .expect("Failed to run script");
-
-            Ok(())
-        })
+        // .setup(|app| {
+        //     let resource_path: String = app
+        //         .handle()
+        //         .path_resolver()
+        //         .resource_dir()
+        //         .unwrap_or_default()
+        //         .to_string_lossy()
+        //         .to_string();
+        //     Command::new("node")
+        //         .args([
+        //             format!("{}/resources/bridger/bundle.cjs", resource_path),
+        //             format!("{}/resources/bridger/.env", resource_path),
+        //         ])
+        //         .spawn()
+        //         .expect("Failed to run script");
+        //     Ok(())
+        // })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
