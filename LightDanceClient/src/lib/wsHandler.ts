@@ -94,7 +94,7 @@ export function handleWSMessage(message: MessageType) {
             setBoardCalibrate(boardId, "none");
             return showNotification({
                 title: "Calibration Failed",
-                message: `Board ${boardId} failed to calibrate`,
+                message: `Board ${boardId} failed to calibrate due to ${message.payload.split(";")[3]}`,
                 color: "red",
             });
         }

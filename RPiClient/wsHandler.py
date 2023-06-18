@@ -71,8 +71,9 @@ async def receive_messages(websocket, show, lighting_groups, connection_closed):
             elif msgType == "calibrate":
                 queue_message("recieve", "calibrate")
                 await asyncio.sleep(1)
-                cal_res = show.run_calibrate_time()
-                if cal_res != "error": queue_message("reply", f"calibrate;complete;{json.dumps(cal_res)}")
+                show.run_calibrate_time()
+                await close_connection(connection_closed)
+                # if cal_res != "error": queue_message("reply", f"calibrate;complete;{json.dumps(cal_res)}")
             elif msgType == "flash":
                 queue_message("recieve", "flash")
                 payload = eval(response["payload"])
@@ -117,7 +118,7 @@ async def websocket_client(uri, show, lighting_groups):
                 print("Connected")
                 while not messageQueue.empty(): messageQueue.get()
                 queue_message("initialize", f"{client_token};{mac_addr};{local_ip_addr}")
-
+                if show.calibrated: queue_message("reply", "calibrate;complete")
                 reconnect_delay = 1
                 connection_closed = asyncio.Event()
 

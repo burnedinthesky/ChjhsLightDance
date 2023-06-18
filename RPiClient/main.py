@@ -40,10 +40,21 @@ class Show:
         global board_status
         board_status = BoardStatus.PROCESSING
         try:
+            retry_count = 0
+            while True:
+                if retry_count > 20: raise SystemError("Failed to detect ethernet connection")
+                output = subprocess.check_output(['ip', 'link', 'show', "eth0"], text=True)
+                if "state UP" in output: break
+                time.sleep(1)
+                break
             subprocess.run(["sudo", "sntp", server_ip])
             self.calibrated = True
             board_status = BoardStatus.IDLE
-            return json.dumps("")
+            retry_count = 0
+            while True:
+                if retry_count > 20: raise SystemError("Failed to unplug ethernet connection")
+                time.sleep(1)
+                break
         except Exception as e:
             board_status = BoardStatus.IDLE
             queue_message("throw", f"calibrate;{e}")
