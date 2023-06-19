@@ -43,20 +43,48 @@ class Show:
             retry_count = 0
             while True:
                 if retry_count > 20: raise SystemError("Failed to detect ethernet connection")
+                print(f"Waiting for ethernet connection, retry count {retry_count}")
                 output = subprocess.check_output(['ip', 'link', 'show', "eth0"], text=True)
                 if "state UP" in output: break
+                retry_count += 1
                 time.sleep(1)
-                break
-            subprocess.run(["sudo", "sntp", server_ip])
+            print("Connection detected, waiting for RPi to switch to ethernet")
+            subprocess.run(['sudo', 'rfkill', 'block', 'wifi'])
+            retry_count = 0
+            while True:
+                if retry_count > 20: raise SystemError("Failed to connect via ethernet")
+                print(f"Waiting to establish ethernet network connection, retry count {retry_count}")
+                output = subprocess.check_output(['ifconfig', 'eth0'], text=True)
+                if "inet 192.192" in output: break
+                retry_count += 1
+                time.sleep(3)
+            print("Running calibration")
+            subprocess.run(["sudo", "ntpdate", server_ip])
             self.calibrated = True
             board_status = BoardStatus.IDLE
+            print("Calibration complete, waiting for ethernet to be unplugged")
             retry_count = 0
             while True:
                 if retry_count > 20: raise SystemError("Failed to unplug ethernet connection")
+                print(f"Waiting for ethernet connection to be unplugged, retry count {retry_count}")
+                output = subprocess.check_output(['ip', 'link', 'show', "eth0"], text=True)
+                if "state DOWN" in output: break
+                retry_count += 1
                 time.sleep(1)
-                break
+            print("Ethernet disconnected, waiting for RPi to switch to WiFi")
+            subprocess.run(['sudo', 'rfkill', 'unblock', 'wifi'])
+            retry_count = 0
+            while True:
+                if retry_count > 20: raise SystemError("Failed to establish WiFi connection")
+                print(f"Waiting for WiFi connection, retry count {retry_count}")
+                output = subprocess.check_output(['ifconfig', 'wlan0'], text=True)
+                if "inet 192.192" in output: break
+                retry_count += 1
+                time.sleep(3)
+            print("Wifi connected, restarting connection")
         except Exception as e:
             board_status = BoardStatus.IDLE
+            print(f"Calibration failed with error: {e}")
             queue_message("throw", f"calibrate;{e}")
             return "error"
 
@@ -76,10 +104,10 @@ class Show:
             board_status = BoardStatus.IDLE
             reset_lighting_groups(lighting_groups)
             queue_message("recieve", "showComplete")
-            print("Done!")
+            print("Queue depleted!")
             return
         while len(commands) and commands[-1][0] < time_past_start:
-            print(f"executing command at {time_past_start}")
+            # print(f"executing command at {time_past_start}")
             _, command = commands.pop()
             command()
 
@@ -111,4 +139,3 @@ async def show_asyncs():
 
 if __name__ == "__main__":
     asyncio.run(show_asyncs())
-    

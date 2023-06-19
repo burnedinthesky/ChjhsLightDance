@@ -29,14 +29,14 @@ class LightBar:
         return self.powered
 
     def set_power(self, power):
-        print(f"Setting power of light bar {self.id} to {power}")
+        # print(f"Setting power of light bar {self.id} to {power}")
         self.channel.duty_cycle = 1024 * power
         self.powered = power
 
     def set_brightness(self, level):
         if level < 0 or level > 100:
             raise ValueError("Power opacity must be between levels 0 to 100")
-        print(f"Setting brightness of light bar {self.id} to {level}")
+        # print(f"Setting brightness of light bar {self.id} to {level}")
         self.channel.duty_cycle = 307 + int(230 * (level / 100))
         
 class LightingGroup:
@@ -56,4 +56,5 @@ def initialize_lighting_groups(config, lighting_groups):
         lighting_groups[group['id']] = LightingGroup(group['pins'])
 
 def reset_lighting_groups(lighting_groups):
-    lighting_groups.clear()
+    for group in lighting_groups:
+        lighting_groups[group].set_power(0)
