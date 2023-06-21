@@ -89,23 +89,29 @@ fn main() {
             get_fragment_length,
             compile_final_dance
         ])
-        // .setup(|app| {
-        //     let resource_path: String = app
-        //         .handle()
-        //         .path_resolver()
-        //         .resource_dir()
-        //         .unwrap_or_default()
-        //         .to_string_lossy()
-        //         .to_string();
-        //     Command::new("node")
-        //         .args([
-        //             format!("{}/resources/bridger/bundle.cjs", resource_path),
-        //             format!("{}/resources/bridger/.env", resource_path),
-        //         ])
-        //         .spawn()
-        //         .expect("Failed to run script");
-        //     Ok(())
-        // })
+        .setup(|app| {
+            let mut resource_path = app
+                .handle()
+                .path_resolver()
+                .resource_dir()
+                .unwrap_or_default();
+
+            resource_path.push("resources");
+            resource_path.push("bridger");
+            let bridger_dir_str = resource_path.to_str().expect("Failed to get bridger dir");
+
+            let bundle_path = std::path::Path::new(&bridger_dir_str).join("bundle.cjs");
+            let env_file_path = std::path::Path::new(&bridger_dir_str).join(".env");
+
+            Command::new("node")
+                .args([
+                    bundle_path.to_str().expect("Failed to get bundle path"),
+                    env_file_path.to_str().expect("Failed to get env path"),
+                ])
+                .spawn()
+                .expect("Failed to run script");
+            Ok(())
+        })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

@@ -43,7 +43,7 @@ class LightGroup():
             self.commands.append((time, f"setBrightness;{arg*10}"))
         elif cmd[0] == "f":
             _, start_power, end_power, duration = cmd.split(";")
-            self.handle_fade(time, int(start_power), int(end_power), int(duration) * 1000)
+            self.handle_fade(time, int(start_power), int(end_power), round(float(duration) * 1000))
         else:
             raise ValueError("Invalid command type")
         
