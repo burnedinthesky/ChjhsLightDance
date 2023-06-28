@@ -6,11 +6,15 @@ import ConfApp from "./Components/Configurator/ConfApp";
 import { connectWebSocket } from "./lib/wsPortal";
 import { useWSConvStore } from "./Stores/WSConnection";
 import { Button, Modal } from "@mantine/core";
+import { useBoardStore } from "./Stores/Boards";
 
 connectWebSocket();
 
 function App() {
     const [appMode, setAppMode] = useState<"asm" | "conf">("asm");
+
+    const loadBoardConfigs = useBoardStore((state) => state.loadFromLocalStorage);
+
     const {
         connected: wsConnected,
         preConLogs,
@@ -22,6 +26,10 @@ function App() {
     }));
 
     const logContainerRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        loadBoardConfigs();
+    }, []);
 
     useEffect(() => {
         const logContainer = logContainerRef.current;

@@ -12,7 +12,6 @@ export const useBoardStore = create<{
     boards: BoardData[];
     audioFile: string | null;
     editSinceLastFlash: boolean;
-    localStorageLoadedInSession: boolean;
 
     loadFromLocalStorage(): Promise<void>;
     saveToLocalStorage(): void;
@@ -43,8 +42,6 @@ export const useBoardStore = create<{
     localStorageLoadedInSession: false,
 
     async loadFromLocalStorage() {
-        if (get().localStorageLoadedInSession) return;
-
         if (!(await exists("board_configs.json", { dir: BaseDirectory.AppData })))
             await writeTextFile("board_configs.json", JSON.stringify({ boards: [], audio: null }), {
                 dir: BaseDirectory.AppData,
@@ -74,10 +71,7 @@ export const useBoardStore = create<{
             })),
             audioFile: result.data.audio,
             editSinceLastFlash: true,
-            localStorageLoadedInSession: true,
         }));
-
-        console.log("Loaded");
     },
     saveToLocalStorage() {
         writeTextFile("board_configs.json", JSON.stringify({ boards: get().boards, audio: get().audioFile }), {
