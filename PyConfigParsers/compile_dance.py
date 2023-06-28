@@ -7,6 +7,7 @@ parser = ArgumentParser()
 parser.add_argument("file_locs")
 parser.add_argument("config_file")
 parser.add_argument("start_from", type=int)
+parser.add_argument("--dev", action="store_true")
 args = parser.parse_args()
 
 with open(args.config_file) as f:
@@ -38,13 +39,18 @@ for frag in frags:
         if row_id not in light_groups.keys(): raise ValueError(f"Invalid light group ID: {row_id}")
         for i, time_mark in enumerate(data.keys()):
             if i < 2 or pd.isna(data[time_mark]): continue
-            cmd_time = accm_time + float(time_mark) * 1000
+            cmd_time = round(accm_time + float(time_mark) * 1000)
             light_groups[row_id].add_command(cmd_time, data[time_mark])
         max_end_time = max(light_groups[row_id].get_length(), max_end_time)
-    accm_time += max(max_end_time, annotated_end_time)
+    accm_time = max(max_end_time, accm_time + annotated_end_time)
 
 final_output = {}
 for key in light_groups.keys():
     final_output[key] = light_groups[key].export_commands()
 
-print(json.dumps(final_output))
+if args.dev:
+    print("\n".join([str(x) for x in final_output['B1G1']]))
+    with open('output.json', 'w') as f:
+        f.write(json.dumps(final_output))
+else:
+    print(json.dumps(final_output))

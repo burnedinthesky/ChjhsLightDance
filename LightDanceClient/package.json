@@ -4,8 +4,12 @@
     "version": "1.0.0",
     "type": "module",
     "scripts": {
-        "dev": "vite",
-        "build": "tsc && vite build",
+        "pack:bridger": "cd ../Bridger && npm run bundle",
+        "move:bundle": "cp -f ../Bridger/dist/bundle.js ./src-tauri/resources/bridger/bundle.cjs",
+        "move:parsers": "cp -f ../PyConfigParsers/*.py ./src-tauri/resources/py-scripts/",
+        "build:accessories": "run-s pack:bridger move:bundle move:parsers",
+        "dev": "npm run build:accessories && npx vite",
+        "build": "npm run build:accessories && npx tsc && npx vite build",
         "preview": "vite preview",
         "tauri": "tauri"
     },
@@ -32,7 +36,9 @@
         "@types/uuid": "^9.0.1",
         "@vitejs/plugin-react": "^3.0.0",
         "autoprefixer": "^10.4.14",
+        "npm-run-all": "^4.1.5",
         "postcss": "^8.4.23",
+        "shelljs": "^0.8.5",
         "tailwindcss": "^3.3.2",
         "typescript": "^4.9.5",
         "vite": "^4.2.1"

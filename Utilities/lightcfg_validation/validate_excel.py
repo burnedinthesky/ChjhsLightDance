@@ -33,7 +33,6 @@ for row_num, row in enumerate(excel.iterrows()):
             light_groups[row_id].add_command(time, data[time_mark])
         except Exception as e:
             errors.append(f"Error at time {time_mark} col {i+1}; Command: {data[time_mark]}; Error: {str(e)}")
-    max_end_time = max(light_groups[row_id].get_length(), max_end_time)
 
 file_path = str(file_path)
 file_path.replace(".xlsx", "")

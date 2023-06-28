@@ -7,10 +7,13 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
+**/*errors.txt
+
 node_modules
 dist
 dist-ssr
 *.local
+**/.env
 
 # Editor directories and files
 .vscode/*
@@ -24,19 +27,18 @@ dist-ssr
 *.sln
 *.sw?
 
+# Local files
+*.xlsx
+PyConfigParsers/test_data/
+
 # Builds
 **/build/
 **/dist/
 **/node-x86_64-apple-darwin
 **/node-aarch64-apple-darwin
-LightDanceClient/src-tauri/resources/bridger/bundle.cjs
+LightDanceClient/src-tauri/resources/*
 
-__pycache__/
-BridgeAPI/storage/
-
-# Cpp builds and debug files
+# Cache files
 **/*.dSYM/
 Client/*.out
-
-**/.env
-**/boost
+__pycache__/

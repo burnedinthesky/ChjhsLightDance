@@ -95,14 +95,11 @@ fn main() {
                 .path_resolver()
                 .resource_dir()
                 .unwrap_or_default();
-
             resource_path.push("resources");
             resource_path.push("bridger");
             let bridger_dir_str = resource_path.to_str().expect("Failed to get bridger dir");
-
             let bundle_path = std::path::Path::new(&bridger_dir_str).join("bundle.cjs");
             let env_file_path = std::path::Path::new(&bridger_dir_str).join(".env");
-
             Command::new("node")
                 .args([
                     bundle_path.to_str().expect("Failed to get bundle path"),

@@ -24,9 +24,13 @@ class LightGroup():
         self.brightness = ep
         
     def add_command(self, time, command):
-        if len(self.commands) and abs(time-self.commands[-1][0]) < 5:
-            time += 5 - abs(time-self.commands[-1][0])
-            # raise ValueError(f"Error at {time}: Time between commands is less than {config['minTime']}ms")
+        error_str = None
+
+        if not len(self.commands): pass
+        elif time < self.commands[-1][0]:
+            error_str = f"Error at {time}: Time is less than previous command"
+        elif abs(time-self.commands[-1][0]) < 5:
+            error_str = f"Warning at {time}: Command time is too close to previous command (<5ms)"
 
         cmd = command
         if cmd[0] == "t":
@@ -46,6 +50,8 @@ class LightGroup():
             self.handle_fade(time, int(start_power), int(end_power), round(float(duration) * 1000))
         else:
             raise ValueError("Invalid command type")
+        
+        if error_str: raise ValueError(error_str)
         
     def get_length(self):
         return int(self.commands[-1][0])

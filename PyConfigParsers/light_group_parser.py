@@ -8,25 +8,29 @@ class LightGroup():
         self.commands = []
         self.brightness = 0
 
+        self.add_command(0, "t0")
+
     def handle_fade(self, time, start_power, end_power, duration):
         if duration < 5: raise ValueError(f"Error at {time}: Fade duration is less than {config['minTime']}ms")
         sp = start_power * 10
         ep = end_power * 10
         self.commands.append((time, f"setBrightness;{sp}"))
         last_brightness = sp
-        for i in range(5, duration, 5):
+        for i in range(5, duration, 40):
             if time+i < 0: continue
             new_brightness = round(sp + ((ep-sp) / duration) * i)
             if new_brightness == last_brightness: continue
             last_brightness = new_brightness
             self.commands.append((time+i, f"setBrightness;{new_brightness}"))
-        self.commands.append((time+duration, f"setBrightness;{ep}"))
+        self.commands.append((round(time+duration), f"setBrightness;{ep}"))
         self.brightness = ep
         
     def add_command(self, time, command):
-        if len(self.commands) and abs(time-self.commands[-1][0]) < 5:
+        if not len(self.commands): pass
+        elif time < self.commands[-1][0]:
+            raise ValueError(f"Error at {time}: Time is less than previous command")
+        elif abs(time-self.commands[-1][0]) < 5:
             time += 5 - abs(time-self.commands[-1][0])
-            # raise ValueError(f"Error at {time}: Time between commands is less than {config['minTime']}ms")
 
         cmd = command
         if cmd[0] == "t":
