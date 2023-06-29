@@ -7,12 +7,19 @@ export const ExecuteManagerMessage = (
 ) => {
     if (message.type === "flash") {
         const rawObjectData = JSON.parse(message.payload);
-        const objData = FlashData.parse(rawObjectData);
+        let objData = FlashData.parse(rawObjectData);
 
         Object.keys(objData).forEach((addr) => {
             sendBridgerMessage(objData[addr].type, [addr], {
                 type: "flash",
-                payload: JSON.stringify(objData[addr]),
+                payload: JSON.stringify({
+                    ...objData[addr],
+                    lgConfig: objData[addr].lgConfig.map((lg) => ({
+                        ...lg,
+                        elConfig: lg.elConfig === null ? "None" : lg.elConfig,
+                        wsConfig: lg.wsConfig === null ? "None" : lg.wsConfig,
+                    })),
+                }),
             });
         });
     } else if (message.type == "calibrate") {

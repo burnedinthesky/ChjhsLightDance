@@ -126,6 +126,15 @@ const ShowConfigurator = ({ startShow }: ShowConfiguratorProps) => {
                         loading={flashing}
                         className="w-[73px] font-jbmono bg-blue-500 hover:bg-blue-600 transition-colors duration-100"
                         size="xs"
+                        disabled={boards.some((brd) =>
+                            brd.lightGroups.some(
+                                (lg) =>
+                                    lg.wsConfig &&
+                                    (lg.wsConfig.dma === null ||
+                                        lg.wsConfig.led_count === null ||
+                                        lg.wsConfig.pin === null)
+                            )
+                        )}
                         onClick={async () => {
                             setFlashing(true);
                             console.log("Flashing");

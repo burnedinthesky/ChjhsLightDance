@@ -57,6 +57,7 @@ const WSConfig = ({ config, selectedBoard }: WSConfigProps) => {
                         className="w-40"
                         value={config.wsConfig.led_count ?? ""}
                         onChange={(v) => setWSLGConfig(config.id, { led_count: v === "" ? null : v })}
+                        min={0}
                     />
                 </div>
             </div>

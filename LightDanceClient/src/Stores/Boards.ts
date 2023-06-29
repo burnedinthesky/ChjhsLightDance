@@ -232,7 +232,7 @@ export const useBoardStore = create<{
             ...state,
             boards: state.boards.map((board) => ({
                 ...board,
-                lightGroups: board.lightGroups.map((lg) => (lg.id === LGId ? { ...lg, lights: lightBars } : lg)),
+                lightGroups: board.lightGroups.map((lg) => (lg.id === LGId ? { ...lg, elConfig: lightBars } : lg)),
             })),
         }));
         get().saveToLocalStorage();
