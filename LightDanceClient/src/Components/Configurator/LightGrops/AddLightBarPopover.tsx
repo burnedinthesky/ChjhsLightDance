@@ -1,9 +1,9 @@
 import { ActionIcon, Popover, Select } from "@mantine/core";
 import { PlusIcon, XIcon, CheckIcon } from "@heroicons/react/outline";
-import { BoardPins } from "../../lib/hardwardInfo";
+import { BoardPins } from "../../../lib/hardwardInfo";
 
-import { useBoardStore } from "../../Stores/Boards";
-import { LightingGroupData } from "../../types/Boards";
+import { useBoardStore } from "../../../Stores/Boards";
+import { LightingGroupData } from "../../../types/Boards";
 
 interface AddLightBarPopoverProps {
     config: LightingGroupData;
@@ -56,12 +56,12 @@ const AddLightBarPopover = ({
                         onChange={(val) => {
                             setSelectedAddPin((cur) => ({ ...cur, [config.id]: val }));
                         }}
-                        data={BoardPins.filter((val) => !boardLG!.flatMap((val) => val.lights).includes(val)).map(
-                            (pin) => ({
-                                value: pin,
-                                label: pin,
-                            })
-                        )}
+                        data={BoardPins.filter(
+                            (val) => !boardLG!.flatMap((val) => val.elConfig ?? []).includes(val)
+                        ).map((pin) => ({
+                            value: pin,
+                            label: pin,
+                        }))}
                         searchable
                         dropdownPosition="bottom"
                         maxDropdownHeight={210}
@@ -70,8 +70,7 @@ const AddLightBarPopover = ({
                         disabled={selectedAddPin[config.id] === null}
                         onClick={() => {
                             if (!selectedAddPin[config.id]) return;
-
-                            setLGBars(config.id, [...config.lights, selectedAddPin[config.id]!]);
+                            setLGBars(config.id, [...(config.elConfig ?? []), selectedAddPin[config.id]!]);
                             setOpenAddPins((cur) => cur.filter((id) => id !== config.id));
                         }}
                     >

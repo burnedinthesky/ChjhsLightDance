@@ -1,7 +1,7 @@
 import { ArrowDownIcon, ArrowUpIcon, XIcon } from "@heroicons/react/outline";
 import { ActionIcon } from "@mantine/core";
-import { Fragment, UIFragment } from "../../types/Frags";
-import { useFragmentStore } from "../../Stores/Fragments";
+import { Fragment, UIFragment } from "../../../types/Frags";
+import { useFragmentStore } from "../../../Stores/Fragments";
 
 interface AsmFragBarProps {
     frag: UIFragment;

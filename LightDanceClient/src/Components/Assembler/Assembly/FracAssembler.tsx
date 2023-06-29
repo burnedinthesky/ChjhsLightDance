@@ -5,7 +5,7 @@ import { PlusIcon } from "@heroicons/react/outline";
 
 import AsmFragBar from "./AsmFragBar";
 
-import { useFragmentStore } from "../../Stores/Fragments";
+import { useFragmentStore } from "../../../Stores/Fragments";
 
 interface FracAssemblerProps {
     selectedFrag: string | null;

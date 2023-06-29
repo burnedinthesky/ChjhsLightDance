@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { Accordion, ActionIcon, Button, Modal, Popover, ScrollArea, TextInput } from "@mantine/core";
 import { PencilAltIcon, TrashIcon } from "@heroicons/react/outline";
-import { useBoardStore } from "../../Stores/Boards";
-import { sendWSMessage } from "../../lib/wsPortal";
-import { BoardStatus } from "../../types/Boards";
+import { useBoardStore } from "../../../Stores/Boards";
+import { sendWSMessage } from "../../../lib/wsPortal";
+import { BoardStatus } from "../../../types/Boards";
 
 const ParseStatusToString = (status: BoardStatus) => {
     switch (status) {

@@ -1,6 +1,6 @@
 import { Button, Modal, NumberInput } from "@mantine/core";
 import { useEffect, useState } from "react";
-import { useBoardStore } from "../../Stores/Boards";
+import { useBoardStore } from "../../../Stores/Boards";
 import { PlusIcon } from "@heroicons/react/outline";
 import { showNotification } from "@mantine/notifications";
 

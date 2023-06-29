@@ -1,8 +1,8 @@
 import { HashtagIcon, PlusIcon } from "@heroicons/react/outline";
 import { ActionIcon, Button, Modal, TextInput } from "@mantine/core";
 import { useState } from "react";
-import { useBoardStore } from "../../Stores/Boards";
-import { sendWSMessage } from "../../lib/wsPortal";
+import { useBoardStore } from "../../../Stores/Boards";
+import { sendWSMessage } from "../../../lib/wsPortal";
 import ConfigBoardNumModal from "./ConfigBoardNumModal";
 
 const maxAddrRegex = /^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$/;

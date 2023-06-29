@@ -8,6 +8,8 @@ import { notifications, showNotification } from "@mantine/notifications";
 import { BoardData, BoardDataZod, BoardStatus } from "../types/Boards";
 import { z } from "zod";
 
+import { cloneDeep } from "lodash";
+
 export const useBoardStore = create<{
     boards: BoardData[];
     audioFile: string | null;
@@ -28,8 +30,9 @@ export const useBoardStore = create<{
     setBoardOrder(newOrder: Record<string, number>): void;
     compressAssignedNums(): void;
 
-    createLG(boardId: string, name?: string): void;
-    setLGBars(LGId: string, lightBars: string[]): void;
+    createLG(boardId: string, type: "ws" | "el", name?: string): void;
+    setELLGConfig(LGId: string, lightBars: string[]): void;
+    setWSLGConfig(LGId: string, config: { dma?: string | null; pin?: string | null; led_count?: number | null }): void;
     renameLG(LGId: string, newName: string): void;
     deleteLG(boardId: string, LGId: string): void;
 
@@ -177,46 +180,84 @@ export const useBoardStore = create<{
         set((state) => ({
             boards: state.boards
                 .sort((a, b) => a.assignedNum - b.assignedNum)
-                .map((board, i) => ({
-                    ...board,
-                    assignedNum: i + 1,
-                    lightGroups: board.lightGroups.map((lg, i) => ({
+                .map((board, i) => {
+                    const lightGroups = cloneDeep(board.lightGroups);
+                    let ELLG = lightGroups.filter((lg) => lg.type === "el");
+                    let WSLG = lightGroups.filter((lg) => lg.type === "ws");
+                    ELLG = ELLG.map((lg, i) => ({
                         ...lg,
                         assignedNum: i + 1,
-                    })),
-                })),
+                    }));
+                    WSLG = WSLG.map((lg, i) => ({
+                        ...lg,
+                        assignedNum: i + 1,
+                    }));
+                    return {
+                        ...board,
+                        assignedNum: i + 1,
+                        lightGroups: board.lightGroups.map((lg) =>
+                            lg.type === "el" ? ELLG.find((l) => l.id === lg.id)! : WSLG.find((l) => l.id === lg.id)!
+                        ),
+                    };
+                }),
         }));
     },
 
-    createLG(boardId, name) {
+    createLG(boardId, type, name) {
+        const newBoards = cloneDeep(get().boards);
+        const board = newBoards.find((board) => board.id === boardId);
+        if (!board) throw new Error("Board not found");
+
+        board.lightGroups.push({
+            id: uuidv4(),
+            type: type,
+            name: name ? name : `Group ${board.lightGroups.length + 1}`,
+            assignedNum:
+                type === "el"
+                    ? board.lightGroups.filter((lg) => lg.type === "el").length + 1
+                    : board.lightGroups.filter((lg) => lg.type === "ws").length + 1,
+            elConfig: type === "el" ? [] : null,
+            wsConfig: type === "ws" ? { dma: null, led_count: null, pin: null } : null,
+        });
+
         set((state) => ({
             ...state,
-            boards: state.boards.map((board) =>
-                board.id === boardId
-                    ? {
-                          ...board,
-                          lightGroups: [
-                              ...board.lightGroups,
-                              {
-                                  id: uuidv4(),
-                                  name: name ? name : `Group ${board.lightGroups.length + 1}`,
-                                  assignedNum: board.lightGroups.length + 1,
-                                  lights: [],
-                              },
-                          ],
-                      }
-                    : board
-            ),
+            boards: newBoards,
         }));
         get().saveToLocalStorage();
     },
 
-    setLGBars(LGId, lightBars) {
+    setELLGConfig(LGId, lightBars) {
         set((state) => ({
             ...state,
             boards: state.boards.map((board) => ({
                 ...board,
                 lightGroups: board.lightGroups.map((lg) => (lg.id === LGId ? { ...lg, lights: lightBars } : lg)),
+            })),
+        }));
+        get().saveToLocalStorage();
+    },
+
+    setWSLGConfig(LGId, config) {
+        set((state) => ({
+            ...state,
+            boards: state.boards.map((board) => ({
+                ...board,
+                lightGroups: board.lightGroups.map((lg) =>
+                    lg.id === LGId
+                        ? {
+                              ...lg,
+                              wsConfig: lg.wsConfig
+                                  ? {
+                                        dma: config.dma !== undefined ? config.dma : lg.wsConfig.dma,
+                                        pin: config.pin !== undefined ? config.pin : lg.wsConfig.pin,
+                                        led_count:
+                                            config.led_count !== undefined ? config.led_count : lg.wsConfig.led_count,
+                                    }
+                                  : null,
+                          }
+                        : lg
+                ),
             })),
         }));
         get().saveToLocalStorage();
@@ -245,6 +286,7 @@ export const useBoardStore = create<{
                     : board
             ),
         }));
+        get().compressAssignedNums();
         get().saveToLocalStorage();
     },
 

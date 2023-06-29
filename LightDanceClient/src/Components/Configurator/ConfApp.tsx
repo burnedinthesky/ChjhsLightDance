@@ -1,20 +1,19 @@
 import { useEffect, useState } from "react";
-import { invoke } from "@tauri-apps/api/tauri";
-import BoardAccordion from "./BoardAccordion";
-import LightGroupConfigs from "./LightGroupConfig";
-import ShowConfigurator from "./ShowConfigurator";
+import { LoadingOverlay } from "@mantine/core";
 
-import { useBoardStore } from "../../Stores/Boards";
+import BoardAccordion from "./Boards/BoardAccordion";
+import LightGroupConfigs from "./LightGrops/LightGroupConfig";
+import ShowConfigurator from "./Show/ShowConfigurator";
+import ShowDisplay from "../Show";
+import CreateBoard from "./Boards/CreateBoard";
+
+import { invoke } from "@tauri-apps/api/tauri";
+import { sendWSMessage } from "../../lib/wsPortal";
 import { showNotification } from "@mantine/notifications";
 
-import ShowDisplay from "../Show";
-
-import { ActionIcon, LoadingOverlay } from "@mantine/core";
+import { useBoardStore } from "../../Stores/Boards";
 import { useWSConvStore } from "../../Stores/WSConnection";
-import { sendWSMessage } from "../../lib/wsPortal";
 import { useShowStore } from "../../Stores/Show";
-import { PlusIcon } from "@heroicons/react/outline";
-import CreateBoard from "./CreateBoard";
 
 interface ConfAppProps {
     appMode: string;

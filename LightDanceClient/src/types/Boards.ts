@@ -6,9 +6,17 @@ export type BoardStatus = z.infer<typeof BoardStatusZod>;
 
 export const LightGroupDataZod = z.object({
     id: z.string(),
+    type: z.enum(["el", "ws"]),
     name: z.string(),
     assignedNum: z.number(),
-    lights: z.array(z.string()),
+    elConfig: z.array(z.string()).nullable(),
+    wsConfig: z
+        .object({
+            dma: z.string().nullable(),
+            pin: z.string().nullable(),
+            led_count: z.number().nullable(),
+        })
+        .nullable(),
 });
 
 export type LightingGroupData = z.infer<typeof LightGroupDataZod>;

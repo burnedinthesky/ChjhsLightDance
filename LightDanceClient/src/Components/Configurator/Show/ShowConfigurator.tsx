@@ -5,11 +5,11 @@ import { open } from "@tauri-apps/api/dialog";
 import { exists, readTextFile, writeTextFile, BaseDirectory } from "@tauri-apps/api/fs";
 
 import { appDataDir, join } from "@tauri-apps/api/path";
-import { useBoardStore } from "../../Stores/Boards";
-import { CompileDance, FlashShowData } from "../../lib/showData";
+import { useBoardStore } from "../../../Stores/Boards";
+import { CompileDance, FlashShowData } from "../../../lib/showData";
 import { showNotification } from "@mantine/notifications";
-import { useFragmentStore } from "../../Stores/Fragments";
-import { useMetaDataStore } from "../../Stores/MetaData";
+import { useFragmentStore } from "../../../Stores/Fragments";
+import { useMetaDataStore } from "../../../Stores/MetaData";
 
 interface ShowConfiguratorProps {
     startShow: () => void;

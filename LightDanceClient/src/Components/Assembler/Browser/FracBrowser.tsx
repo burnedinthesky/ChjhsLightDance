@@ -4,8 +4,8 @@ import { Accordion, ActionIcon, Button, Modal, ScrollArea } from "@mantine/core"
 import { ChevronDownIcon, FolderAddIcon, PencilAltIcon, PuzzleIcon, TrashIcon } from "@heroicons/react/outline";
 import FragBar from "./FragBar";
 
-import { useFragmentStore } from "../../Stores/Fragments";
-import { AddFolderModal, AddFragmentModal, RenameFolderModal } from "./ConfModals";
+import { useFragmentStore } from "../../../Stores/Fragments";
+import { AddFolderModal, AddFragmentModal, RenameFolderModal } from "../ConfModals";
 
 interface FracBrowserProps {
     selectedFrag: string | null;

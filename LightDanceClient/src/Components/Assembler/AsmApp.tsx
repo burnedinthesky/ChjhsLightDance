@@ -1,6 +1,6 @@
 import { useState } from "react";
-import FracAssembler from "./FracAssembler";
-import FracBrowser from "./FracBrowser";
+import FracAssembler from "./Assembly/FracAssembler";
+import FracBrowser from "./Browser/FracBrowser";
 
 const AsmApp = () => {
     const [selectedFrag, setSelectedFrag] = useState<string | null>(null);

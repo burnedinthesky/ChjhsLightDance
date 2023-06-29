@@ -2,14 +2,14 @@ import { useState } from "react";
 
 import { ActionIcon, Radio } from "@mantine/core";
 import { FolderOpenIcon, PencilAltIcon, RefreshIcon, XIcon } from "@heroicons/react/outline";
-import { RenameFragModal } from "./ConfModals";
+import { RenameFragModal } from "../ConfModals";
 
-import { useFragmentStore } from "../../Stores/Fragments";
+import { useFragmentStore } from "../../../Stores/Fragments";
 import { invoke } from "@tauri-apps/api/tauri";
 import { appDataDir, join } from "@tauri-apps/api/path";
 import { showNotification } from "@mantine/notifications";
 
-import { Fragment } from "../../types/Frags";
+import { Fragment } from "../../../types/Frags";
 
 interface FragBarProps {
     frag: Fragment;
