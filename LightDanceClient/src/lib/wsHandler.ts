@@ -76,6 +76,9 @@ export function handleWSMessage(message: MessageType) {
         message.payload.split(";").forEach((board) => {
             const [mac_addr, ip] = board.split(",");
             if (!mac_addr) return;
+            console.log(mac_addr, ip);
+            console.log(boards.find((b) => b.id === mac_addr));
+            console.log(boards);
             if (!boards.find((b) => b.id === mac_addr)) return unauthed_boards.push(mac_addr);
             linkConnectedBoard(mac_addr, ip);
         });
@@ -84,6 +87,7 @@ export function handleWSMessage(message: MessageType) {
             showNotification({
                 title: "Unauthorized Boards in Refresh",
                 message: `Boards ${unauthed_boards.join(" ")} found`,
+                color: "orange",
             });
         setRefreshedBoard(true);
     } else if (message.type === "throw") {
@@ -98,6 +102,8 @@ export function handleWSMessage(message: MessageType) {
                 color: "red",
             });
         }
+        const boardId = message.payload.split(";")[0];
+        setBoardStatus(boardId, "connected");
         showNotification({
             title: "Received WS Throw Message",
             message: message.payload,

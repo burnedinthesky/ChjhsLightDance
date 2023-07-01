@@ -2,7 +2,6 @@ import time
 import asyncio
 import subprocess
 import os
-import json
 import collections
 from dotenv import load_dotenv
 load_dotenv()
@@ -14,6 +13,14 @@ from wsHandler import websocket_client, queue_message
 
 server_ip = os.getenv("SERVER_IP")
 server_port = os.getenv("SERVER_PORT")
+
+print("Waiting for WiFi")
+
+while True:
+    output = subprocess.check_output(['ifconfig', 'wlan0'], text=True)
+    if f"inet {'.'.join(server_ip.split('.')[:2])}" in output: break
+    time.sleep(3)
+    
 
 class BoardStatus(Enum):
     IDLE = 0

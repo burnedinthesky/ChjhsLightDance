@@ -48,6 +48,13 @@ class LightGroup():
         elif cmd[0] == "f":
             _, start_power, end_power, duration = cmd.split(";")
             self.handle_fade(time, int(start_power), int(end_power), round(float(duration) * 1000))
+        elif cmd[0] == "#":
+            r, g, b = int(cmd[1:3], 16), int(cmd[3:5], 16), int(cmd[5:7], 16)
+            brightness = None
+            if len(cmd) == 8: brightness = int(cmd[7])
+            if len(cmd) == 9: brightness = int(cmd[7:9])
+            if r < 0 or r > 255 or g < 0 or g > 255 or b < 0 or b > 255: raise ValueError(f"Error at {time}: Invalid color")
+            self.commands.append((time, f"setColor;{hex(r)[2:]};{hex(g)[2:]};{hex(b)[2:]}" + (f";{brightness}" if brightness else "")))
         else:
             raise ValueError("Invalid command type")
         

@@ -1,7 +1,11 @@
 import collections
 from lightGroups import initialize_lighting_groups
+import os
 
-dev_mode = True
+from dotenv import load_dotenv
+load_dotenv()
+
+dev_mode = os.getenv("DEV_MODE")
 
 if dev_mode:
     class Color():
@@ -21,9 +25,13 @@ def parse_command(target_lg, command):
     elif command_type == 'setColor':
         if target_lg.type != "ws": 
             raise ValueError(f'Invalid command type for lighting group with type {target_lg.type}')
-        color = Color(int(params[0:2], 16), int(params[2:4], 16), int(params[4:6],16))
-        brightness = int(params) if len(params) == 8 else None
+        color = Color(int(params[0], 16), int(params[1], 16), int(params[2],16))
+        brightness = int(params[3]) if len(params) == 4 else None
         return lambda: target_lg.set_color(color, brightness)
+    elif command_type == "initWS":
+        if target_lg.type != "ws": 
+            raise ValueError(f'Invalid command type for lighting group with type {target_lg.type}')
+        return lambda: target_lg.init_ws()
     else:
         raise ValueError('Invalid command type')
         

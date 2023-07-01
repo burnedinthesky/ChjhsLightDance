@@ -1,6 +1,10 @@
 import board
+import os
 
-dev_mode = True
+from dotenv import load_dotenv
+load_dotenv()
+
+dev_mode = os.getenv("DEV_MODE")
 
 if dev_mode:
     class Channel():
@@ -62,7 +66,9 @@ class LEDStrip:
     def __init__(self, led_count, gpio_pin, dma_channel) -> None:
         self.type = "ws"
         self.led_count = led_count
-        self.strip = PixelStrip(led_count, gpio_pin, ws_led_freq, dma_channel, FloatingPointError, 0)
+        self.strip = PixelStrip(led_count, gpio_pin, ws_led_freq, dma_channel, False, 0)
+
+    def init_ws(self):
         self.strip.begin()
 
     def set_power(self, state):

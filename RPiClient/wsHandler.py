@@ -132,4 +132,5 @@ async def websocket_client(uri, show, lighting_groups):
             print(f"Reconnecting in {reconnect_delay} seconds")
 
         await asyncio.sleep(reconnect_delay)
-        reconnect_delay *= 2
+        if reconnect_delay < 16: reconnect_delay *= 2
+        
