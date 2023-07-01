@@ -93,7 +93,7 @@ const ConfApp = ({ appMode }: ConfAppProps) => {
                 <div className="w-1/2 flex-grow flex flex-col gap-4">
                     <h2 className="text-xl">Lighting Group Configurations</h2>
                     <div className="w-full">
-                        <LightGroupConfigs key={focusedBoard} selectedBoard={focusedBoard} />
+                        <LightGroupConfigs key={focusedBoard} selectedBoardID={focusedBoard} />
                     </div>
                 </div>
             </div>

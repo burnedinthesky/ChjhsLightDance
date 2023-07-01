@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Button, Popover } from "@mantine/core";
 import { open } from "@tauri-apps/api/dialog";
 
-import { exists, readTextFile, writeTextFile, BaseDirectory } from "@tauri-apps/api/fs";
+import { exists, readTextFile, BaseDirectory } from "@tauri-apps/api/fs";
 
 import { appDataDir, join } from "@tauri-apps/api/path";
 import { useBoardStore } from "../../../Stores/Boards";
@@ -126,15 +126,24 @@ const ShowConfigurator = ({ startShow }: ShowConfiguratorProps) => {
                         loading={flashing}
                         className="w-[73px] font-jbmono bg-blue-500 hover:bg-blue-600 transition-colors duration-100"
                         size="xs"
-                        disabled={boards.some((brd) =>
-                            brd.lightGroups.some(
-                                (lg) =>
-                                    lg.wsConfig &&
-                                    (lg.wsConfig.dma === null ||
-                                        lg.wsConfig.led_count === null ||
-                                        lg.wsConfig.pin === null)
+                        disabled={boards.some((brd) => {
+                            if (
+                                brd.ledStrips.some((strip) => {
+                                    if (strip.dma === null) return true;
+                                    if (strip.pin === null) return true;
+                                    if (strip.led_count === null) return true;
+                                })
                             )
-                        )}
+                                return true;
+                            if (
+                                brd.lightGroups.some((group) => {
+                                    if (group.wsConfig.ledStrip === null) return true;
+                                    if (group.wsConfig.ledPixels.length === 0) return true;
+                                })
+                            )
+                                return true;
+                            return false;
+                        })}
                         onClick={async () => {
                             setFlashing(true);
                             console.log("Flashing");

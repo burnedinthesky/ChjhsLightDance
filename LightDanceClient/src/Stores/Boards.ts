@@ -30,9 +30,22 @@ export const useBoardStore = create<{
     setBoardOrder(newOrder: Record<string, number>): void;
     compressAssignedNums(): void;
 
+    createLEDStrip(boardId: string, name?: string): void;
+    setLEDStripConfig(
+        LEDId: string,
+        config: { dma?: string | null; pin?: string | null; led_count?: number | null }
+    ): void;
+    renameLEDStrip(LEDId: string, newName: string): void;
+    deleteLEDStrip(boardId: string, LEDId: string): void;
+
     createLG(boardId: string, type: "ws" | "el", name?: string): void;
-    setELLGConfig(LGId: string, lightBars: string[]): void;
-    setWSLGConfig(LGId: string, config: { dma?: string | null; pin?: string | null; led_count?: number | null }): void;
+    setWSLGConfig(
+        LGId: string,
+        config: {
+            stripId?: string | null;
+            pixelPairs?: [number, number][];
+        }
+    ): void;
     renameLG(LGId: string, newName: string): void;
     deleteLG(boardId: string, LGId: string): void;
 
@@ -111,6 +124,7 @@ export const useBoardStore = create<{
             status: "disconnected",
             ip: ip ?? null,
             assignedNum: get().boards.length + 1,
+            ledStrips: [],
             lightGroups: [],
             calibrationStat: "none",
         };
@@ -181,6 +195,12 @@ export const useBoardStore = create<{
             boards: state.boards
                 .sort((a, b) => a.assignedNum - b.assignedNum)
                 .map((board, i) => {
+                    let ledStrips = cloneDeep(board.ledStrips);
+                    ledStrips = ledStrips.map((ls, i) => ({
+                        ...ls,
+                        assignedNum: i + 1,
+                    }));
+
                     const lightGroups = cloneDeep(board.lightGroups);
                     let ELLG = lightGroups.filter((lg) => lg.type === "el");
                     let WSLG = lightGroups.filter((lg) => lg.type === "ws");
@@ -195,12 +215,90 @@ export const useBoardStore = create<{
                     return {
                         ...board,
                         assignedNum: i + 1,
+                        ledStrips,
                         lightGroups: board.lightGroups.map((lg) =>
                             lg.type === "el" ? ELLG.find((l) => l.id === lg.id)! : WSLG.find((l) => l.id === lg.id)!
                         ),
                     };
                 }),
         }));
+    },
+
+    createLEDStrip(boardId, name) {
+        set((state) => ({
+            ...state,
+            boards: state.boards.map((board) =>
+                board.id === boardId
+                    ? {
+                          ...board,
+                          ledStrips: [
+                              ...board.ledStrips,
+                              {
+                                  id: `B${board.assignedNum}S${board.ledStrips.length + 1}`,
+                                  assignedNum: board.ledStrips.length + 1,
+                                  name: name ? name : `LED Strip ${board.ledStrips.length + 1}`,
+                                  dma: null,
+                                  led_count: null,
+                                  pin: null,
+                              },
+                          ],
+                      }
+                    : board
+            ),
+        }));
+
+        get().compressAssignedNums();
+        get().saveToLocalStorage();
+    },
+
+    setLEDStripConfig(LEDId, config) {
+        set((state) => ({
+            ...state,
+            boards: state.boards.map((board) => ({
+                ...board,
+                ledStrips: board.ledStrips.map((ledStrip) =>
+                    ledStrip.id === LEDId
+                        ? {
+                              ...ledStrip,
+                              dma: config.dma !== undefined ? config.dma : ledStrip.dma,
+                              pin: config.pin !== undefined ? config.pin : ledStrip.pin,
+                              led_count: config.led_count !== undefined ? config.led_count : ledStrip.led_count,
+                          }
+                        : ledStrip
+                ),
+            })),
+        }));
+        get().saveToLocalStorage();
+    },
+
+    renameLEDStrip(LEDId, newName) {
+        set((state) => ({
+            ...state,
+            boards: state.boards.map((board) => ({
+                ...board,
+                ledStrips: board.ledStrips.map((ledStrip) =>
+                    ledStrip.id === LEDId
+                        ? {
+                              ...ledStrip,
+                              name: newName,
+                          }
+                        : ledStrip
+                ),
+            })),
+        }));
+
+        get().saveToLocalStorage();
+    },
+
+    deleteLEDStrip(LEDId) {
+        set((state) => ({
+            ...state,
+            boards: state.boards.map((board) => ({
+                ...board,
+                ledStrips: board.ledStrips.filter((ledStrip) => ledStrip.id !== LEDId),
+            })),
+        }));
+        get().saveToLocalStorage();
     },
 
     createLG(boardId, type, name) {
@@ -217,28 +315,25 @@ export const useBoardStore = create<{
                     ? board.lightGroups.filter((lg) => lg.type === "el").length + 1
                     : board.lightGroups.filter((lg) => lg.type === "ws").length + 1,
             elConfig: type === "el" ? [] : null,
-            wsConfig: type === "ws" ? { dma: null, led_count: null, pin: null } : null,
+            wsConfig: {
+                id: `B${board.assignedNum}G${board.lightGroups.length + 1}`,
+                name: name ? name : `Group ${board.lightGroups.length + 1}`,
+                assignedNum: board.lightGroups.length + 1,
+                ledStrip: null,
+                ledPixels: [],
+            },
         });
 
         set((state) => ({
             ...state,
             boards: newBoards,
         }));
-        get().saveToLocalStorage();
-    },
-
-    setELLGConfig(LGId, lightBars) {
-        set((state) => ({
-            ...state,
-            boards: state.boards.map((board) => ({
-                ...board,
-                lightGroups: board.lightGroups.map((lg) => (lg.id === LGId ? { ...lg, elConfig: lightBars } : lg)),
-            })),
-        }));
+        get().compressAssignedNums();
         get().saveToLocalStorage();
     },
 
     setWSLGConfig(LGId, config) {
+        console.log(config.pixelPairs);
         set((state) => ({
             ...state,
             boards: state.boards.map((board) => ({
@@ -247,14 +342,11 @@ export const useBoardStore = create<{
                     lg.id === LGId
                         ? {
                               ...lg,
-                              wsConfig: lg.wsConfig
-                                  ? {
-                                        dma: config.dma !== undefined ? config.dma : lg.wsConfig.dma,
-                                        pin: config.pin !== undefined ? config.pin : lg.wsConfig.pin,
-                                        led_count:
-                                            config.led_count !== undefined ? config.led_count : lg.wsConfig.led_count,
-                                    }
-                                  : null,
+                              wsConfig: {
+                                  ...lg.wsConfig,
+                                  ledStrip: config.stripId !== undefined ? config.stripId : lg.wsConfig.ledStrip,
+                                  ledPixels: config.pixelPairs ?? lg.wsConfig.ledPixels,
+                              },
                           }
                         : lg
                 ),
