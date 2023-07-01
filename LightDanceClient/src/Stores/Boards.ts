@@ -316,7 +316,7 @@ export const useBoardStore = create<{
                     : board.lightGroups.filter((lg) => lg.type === "ws").length + 1,
             elConfig: type === "el" ? [] : null,
             wsConfig: {
-                id: `B${board.assignedNum}G${board.lightGroups.length + 1}`,
+                id: `B${board.assignedNum}W${board.lightGroups.length + 1}`,
                 name: name ? name : `Group ${board.lightGroups.length + 1}`,
                 assignedNum: board.lightGroups.length + 1,
                 ledStrip: null,

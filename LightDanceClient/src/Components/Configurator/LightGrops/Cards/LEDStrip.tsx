@@ -18,7 +18,7 @@ const LEDStripConfCard = ({ config, selectedBoard }: LEDStripConfCard) => {
 
     return (
         <div>
-            <p className="mt-2 mb-2">ID: {`B${board.assignedNum}W${config.assignedNum}`}</p>
+            <p className="mt-2 mb-2">ID: {`B${board.assignedNum}S${config.assignedNum}`}</p>
             <div className="grid grid-cols-2 gap-y-2 items-center">
                 <div className="flex gap-4 items-center">
                     <p>DMA Channel:</p>

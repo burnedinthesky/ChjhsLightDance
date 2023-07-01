@@ -13,16 +13,17 @@ args = parser.parse_args()
 with open(args.config_file) as f:
     config = json.load(f)
 
-led_strips: dict[str, LightGroup] = {} 
+led_strips = []
 light_groups: dict[str, LightGroup] = {}
 
 for board in config['boards']:
-    for strip in led_strips:
+    for strip in board['ledStrips']:
         strip_id = f"B{board['assignedNum']}S{strip['assignedNum']}"
-        led_strips[strip_id] = LightGroup(strip_id)
+        led_strips.append(strip_id)
     for group in board['lightGroups']:
         group_id = f"B{board['assignedNum']}W{group['assignedNum']}"
         light_groups[group_id] = LightGroup(group_id)
+
 
 accm_time = -args.start_from
 frags = json.loads(args.file_locs)
@@ -42,7 +43,7 @@ for frag in frags:
         strip_id = data.values[1]
         if pd.isna(row_id): continue
         if row_id not in light_groups.keys(): raise ValueError(f"Invalid light group ID: {row_id}")
-        if strip_id not in led_strips.keys(): raise ValueError(f"Invalid LED strip ID: {strip_id}")
+        if strip_id not in led_strips: raise ValueError(f"Invalid LED strip ID: {strip_id}, {led_strips}")
         for i, time_mark in enumerate(data.keys()):
             if i <= 2 or pd.isna(data[time_mark]): continue
             cmd_time = round(accm_time + float(time_mark) * 1000)
@@ -55,7 +56,7 @@ for key in light_groups.keys():
     final_output[key] = light_groups[key].export_commands()
 
 if args.dev:
-    print("\n".join([str(x) for x in final_output['B1G1']]))
+    print("\n".join([str(x) for x in final_output['B1W1']]))
     with open('output.json', 'w') as f:
         f.write(json.dumps(final_output))
 else:

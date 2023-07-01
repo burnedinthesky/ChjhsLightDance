@@ -1,4 +1,3 @@
-import board
 import os
 
 from dotenv import load_dotenv
@@ -11,7 +10,7 @@ if dev_mode:
         def __init__(self, *args) -> None: pass
         def begin(self): pass
 else:
-    from rpi_ws281x import PixelStrip
+    from rpi_ws281x import PixelStrip, Color
 
 ws_led_freq = 800000
 
@@ -20,40 +19,40 @@ class LightGroup:
         self.strip = strip
         self.pixel_pairs = pixel_pairs
 
-    def set_color(self, color):
+    def set_color(self, r, g, b):
         for pair in self.pixel_pairs:
-            for i in range(pair[0], pair[1] + 1):
-                self.strip.setPixelColor(i, color)
+            self.strip.set_pixel_color(pair[0], pair[1], Color(r, g, b))
             
 
 class LEDStrip:
     def __init__(self, led_count, gpio_pin, dma_channel) -> None:
         self.led_count = led_count
-        self.strip = PixelStrip(led_count, gpio_pin, ws_led_freq, dma_channel, False, 255)
+        self.phy_strip = PixelStrip(led_count, gpio_pin, ws_led_freq, dma_channel, False, 255)
 
     def init_ws(self):
-        self.strip.begin()
+        self.phy_strip.begin()
 
     def set_pixel_color(self, start_pixel, end_pixel, color):
         for i in range(start_pixel, end_pixel + 1):
-            self.strip.setPixelColor(i, color)
+            self.phy_strip.setPixelColor(i, color)
+        self.phy_strip.show()
        
 
 def initialize_led_strips(config, led_strips, board_num):
     for strip in config:
-        id = f"B{board_num}L{strip['assignedNum']}"
+        id = f"B{board_num}S{strip['assignedNum']}"
         led_strips[id] = LEDStrip(
             strip['led_count'],
-            strip['wsConfig']['pin'],
-            strip['wsConfig']['dma']
+            strip['pin'],
+            strip['dma']
         )
 
-def initialize_lighting_groups(config, lighting_groups, board_num):
+def initialize_lighting_groups(config, led_strips, lighting_groups, board_num):
     for group in config:
         id = f"B{board_num}W{group['assignedNum']}"
-        lighting_groups[id]  = LightGroup(
-            group['wsConfig']['strip_id'], 
-            group['wsConfig']['pixel_pairs'], 
+        lighting_groups[id] = LightGroup(
+            led_strips[group['wsConfig']['ledStrip']], 
+            group['wsConfig']['ledPixels'], 
         )
         
 

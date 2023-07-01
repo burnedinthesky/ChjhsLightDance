@@ -37,6 +37,8 @@ class Show:
         global board_status
         self.start_time = time
         board_status = BoardStatus.PLAYING
+        for strip in led_strips:
+            led_strips[strip].init_ws()
         queue_message("recieve", "showStart")
 
     def set_show_lights(self, lightQueue):
@@ -66,7 +68,7 @@ class Show:
                 retry_count += 1
                 time.sleep(3)
             print("Running calibration")
-            subprocess.run(["sudo", "ntpdate", server_ip])
+            subprocess.run(["sudo", "sntp", "-s", "time.asia.apple.com"])
             self.calibrated = True
             board_status = BoardStatus.IDLE
             print("Calibration complete, waiting for ethernet to be unplugged")
@@ -79,15 +81,15 @@ class Show:
                 retry_count += 1
                 time.sleep(1)
             print("Ethernet disconnected, waiting for RPi to switch to WiFi")
-            subprocess.run(['sudo', 'rfkill', 'unblock', 'wifi'])
-            retry_count = 0
-            while True:
-                if retry_count > 20: raise SystemError("Failed to establish WiFi connection")
-                print(f"Waiting for WiFi connection, retry count {retry_count}")
-                output = subprocess.check_output(['ifconfig', 'wlan0'], text=True)
-                if "inet 192.192" in output: break
-                retry_count += 1
-                time.sleep(3)
+            # subprocess.run(['sudo', 'rfkill', 'unblock', 'wifi'])
+            # retry_count = 0
+            # while True:
+            #     if retry_count > 20: raise SystemError("Failed to establish WiFi connection")
+            #     print(f"Waiting for WiFi connection, retry count {retry_count}")
+            #     output = subprocess.check_output(['ifconfig', 'wlan0'], text=True)
+            #     if "inet 192.192" in output: break
+            #     retry_count += 1
+            #     time.sleep(3)
             print("Wifi connected, restarting connection")
         except Exception as e:
             board_status = BoardStatus.IDLE

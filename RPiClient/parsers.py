@@ -7,11 +7,11 @@ load_dotenv()
 
 dev_mode = os.getenv("DEV_MODE")
 
-if dev_mode:
-    class Color():
-        def __init__(self, *args) -> None: pass
-else: 
-    from rpi_ws281x import Color
+# if dev_mode:
+#     class Color():
+#         def __init__(self, *args) -> None: pass
+# else: 
+from rpi_ws281x import Color
 
 def parse_command(target_lg, command):    
     tokens = command.split(';')
@@ -19,14 +19,16 @@ def parse_command(target_lg, command):
     params = tokens[1:]
     
     if command_type == 'setColor':
-        color = Color(int(params[0], 16), int(params[1], 16), int(params[2],16))
-        return lambda: target_lg.set_color(color)
+        # print("Color:")
+        # print(color)
+        # Color(int(params[0], 16), int(params[1], 16), int(params[2],16))
+        return lambda: target_lg.set_color(int(params[0], 16), int(params[1], 16), int(params[2],16))
     else:
         raise ValueError('Invalid command type')
         
 def parse_hardware_config(config, led_strips, lighting_groups):
     initialize_led_strips(config['lsConfig'], led_strips, config['boardNumber'])
-    initialize_lighting_groups(config['lgConfig'], lighting_groups, config['boardNumber'])
+    initialize_lighting_groups(config['lgConfig'], led_strips, lighting_groups, config['boardNumber'])
     
 def parse_light_config(config, lighting_groups):
     temp_command = []

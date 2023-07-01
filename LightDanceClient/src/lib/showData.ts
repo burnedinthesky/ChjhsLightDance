@@ -61,7 +61,7 @@ export async function FlashShowData(hwConf: BoardData[]) {
     hwConf.forEach((board) => {
         // if (board.status !== "connected") return;
         const boardId = board.id;
-        const lightGroups = board.lightGroups.map((lg) => `B${board.assignedNum}G${lg.assignedNum}`);
+        const lightGroups = board.lightGroups.map((lg) => `B${board.assignedNum}W${lg.assignedNum}`);
 
         const lightConfig: Record<string, Record<string, string>[]> = {};
         lightGroups.forEach((lg) => {

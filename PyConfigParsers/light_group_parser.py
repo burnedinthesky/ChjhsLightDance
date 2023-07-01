@@ -1,4 +1,4 @@
-from color_lib import calculate_gradient, change_brightness
+from color_lib import change_brightness
 
 config = {
     "minTime": 5,
@@ -21,21 +21,15 @@ class LightGroup():
         if duration < 5: raise ValueError(f"Error at {time}: Fade duration is less than {config['minTime']}ms")
         sp = start_power * 10
         ep = end_power * 10
-        self.commands.append((time, f"setColor;{
-            self.hex_to_colonhex(change_brightness(self.current_color, start_power / self.brightness))
-        }"))
+        self.commands.append((time, f"setColor;{self.hex_to_colonhex(change_brightness(self.current_color, start_power / self.brightness))}"))
         last_brightness = sp
         for i in range(5, duration, 40):
             if time+i < 0: continue
             new_brightness = round(sp + ((ep-sp) / duration) * i)
             if new_brightness == last_brightness: continue
             last_brightness = new_brightness
-            self.commands.append((time+i, f"setColor;{
-                self.hex_to_colonhex(change_brightness(self.current_color, new_brightness / self.brightness))        
-            }"))
-        self.commands.append((round(time+duration), f"setColor;{
-            self.hex_to_colonhex(change_brightness(self.current_color, ep / self.brightness))        
-        }"))
+            self.commands.append((time+i, f"setColor;{self.hex_to_colonhex(change_brightness(self.current_color, new_brightness / self.brightness))}"))
+        self.commands.append((round(time+duration), f"setColor;{self.hex_to_colonhex(change_brightness(self.current_color, ep / self.brightness))        }"))
         self.brightness = ep
         
     def add_command(self, time, command):
@@ -79,10 +73,12 @@ class LightGroup():
             hex = cmd[1:7]
             self.current_color = self.hex_to_colonhex(change_brightness(hex, 10 / brightness if brightness else 1))
             self.commands.append((time, f"setColor;{self.hex_to_colonhex(hex)}"))
+            
         else:
             raise ValueError("Invalid command type")
         
     def get_length(self):
+        if not len(self.commands): return 0
         return int(self.commands[-1][0])
 
     def export_commands(self):
