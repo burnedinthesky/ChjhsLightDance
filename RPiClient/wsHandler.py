@@ -46,7 +46,7 @@ async def close_connection(connection_closed):
     connection_closed.set()
 
 
-async def receive_messages(websocket, show, lighting_groups, connection_closed):
+async def receive_messages(websocket, show, led_strips, lighting_groups, connection_closed):
     while not connection_closed.is_set():
         try:
             rawResponse = await websocket.recv()
@@ -73,11 +73,10 @@ async def receive_messages(websocket, show, lighting_groups, connection_closed):
                 await asyncio.sleep(1)
                 show.run_calibrate_time()
                 await close_connection(connection_closed)
-                # if cal_res != "error": queue_message("reply", f"calibrate;complete;{json.dumps(cal_res)}")
             elif msgType == "flash":
                 queue_message("recieve", "flash")
                 payload = eval(response["payload"])
-                parse_hardware_config(payload, lighting_groups)
+                parse_hardware_config(payload, led_strips, lighting_groups)
                 show.set_show_lights(
                     parse_light_config(payload["lightConfig"], lighting_groups)
                 )
@@ -109,7 +108,7 @@ async def send_messages(websocket, connection_closed):
             queue_message("throw", f"An error occurred while sending: {e}")
         await asyncio.sleep(0.001)
 
-async def websocket_client(uri, show, lighting_groups):
+async def websocket_client(uri, show, led_strips, lighting_groups):
     reconnect_delay = 1
     while True:
         print("Connecting")
@@ -123,7 +122,7 @@ async def websocket_client(uri, show, lighting_groups):
                 connection_closed = asyncio.Event()
 
                 await asyncio.gather(
-                    receive_messages(websocket, show, lighting_groups, connection_closed),
+                    receive_messages(websocket, show, led_strips, lighting_groups, connection_closed),
                     send_messages(websocket, connection_closed)
                 )
         except ConnectionClosed: pass

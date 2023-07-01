@@ -1,5 +1,5 @@
 import collections
-from lightGroups import initialize_lighting_groups
+from lightGroups import initialize_led_strips, initialize_lighting_groups
 import os
 
 from dotenv import load_dotenv
@@ -18,25 +18,14 @@ def parse_command(target_lg, command):
     command_type = tokens[0]
     params = tokens[1:]
     
-    if command_type == "setPower":
-        return lambda: target_lg.set_power(int(params[0]))
-    elif command_type == 'setBrightness':
-        return lambda: target_lg.set_brightness(int(params[0]))
-    elif command_type == 'setColor':
-        if target_lg.type != "ws": 
-            raise ValueError(f'Invalid command type for lighting group with type {target_lg.type}')
+    if command_type == 'setColor':
         color = Color(int(params[0], 16), int(params[1], 16), int(params[2],16))
-        brightness = int(params[3]) if len(params) == 4 else None
-        return lambda: target_lg.set_color(color, brightness)
-    elif command_type == "initWS":
-        if target_lg.type != "ws": 
-            raise ValueError(f'Invalid command type for lighting group with type {target_lg.type}')
-        return lambda: target_lg.init_ws()
+        return lambda: target_lg.set_color(color)
     else:
         raise ValueError('Invalid command type')
         
-def parse_hardware_config(config, lighting_groups):
-    print(config)
+def parse_hardware_config(config, led_strips, lighting_groups):
+    initialize_led_strips(config['lsConfig'], led_strips, config['boardNumber'])
     initialize_lighting_groups(config['lgConfig'], lighting_groups, config['boardNumber'])
     
 def parse_light_config(config, lighting_groups):

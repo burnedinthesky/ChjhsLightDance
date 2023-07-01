@@ -119,6 +119,7 @@ class Show:
             command()
 
 lighting_groups = {}
+led_strips = {}
 commands = collections.deque()
 
 board_status:BoardStatus = BoardStatus.IDLE
@@ -129,7 +130,7 @@ latest_command = len(commands)
 
 async def ws_main():
     uri = f"ws://{server_ip}:{server_port}/"
-    await websocket_client(uri, show, lighting_groups)
+    await websocket_client(uri, show, led_strips, lighting_groups)
 
 async def show_loop():
     global board_status, latest_command
