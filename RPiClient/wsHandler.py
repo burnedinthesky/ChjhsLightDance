@@ -9,14 +9,12 @@ from queue import Queue
 from websockets.exceptions import ConnectionClosed
 from dotenv import load_dotenv
 
+from enum import Enum
 from parsers import parse_hardware_config, parse_light_config
 
 load_dotenv()
 
 client_token = os.getenv("CLIENT_TOKEN")
-
-print(client_token)
-
 messageQueue = Queue(0)
 
 wlan0_output = subprocess.check_output(["ifconfig"], text=True)
@@ -30,6 +28,12 @@ print(f"Mac Address: {mac_addr}")
 host_name = socket.gethostname()
 local_ip_addr = socket.gethostbyname(host_name)
 
+class CAL_STAGE(Enum):
+    IDLE = 0
+    IN_PROCESS = 1
+    COMPLETE = 2
+
+calibration_stage = CAL_STAGE.IDLE
 
 def queue_message(type: str, message: str):
     messageQueue.put(json.dumps({
@@ -51,7 +55,6 @@ async def receive_messages(websocket, show, led_strips, lighting_groups, connect
         try:
             rawResponse = await websocket.recv()
             response = json.loads(rawResponse)
-
             msgType = response["type"]
             msgPayload = response["payload"]
 
@@ -69,10 +72,32 @@ async def receive_messages(websocket, show, led_strips, lighting_groups, connect
                     else: throw_ws_error("Invalid manager status")
                 else: throw_ws_error("Invalid notify type")
             elif msgType == "calibrate":
-                queue_message("recieve", "calibrate")
-                await asyncio.sleep(1)
-                show.run_calibrate_time()
-                await close_connection(connection_closed)
+                global calibration_stage
+                if calibration_stage != CAL_STAGE.IN_PROCESS: queue_message("recieve", "calibrate")
+                if show.calibration_stage == None: 
+                    calibration_stage = CAL_STAGE.IN_PROCESS
+                    await websocket.send(json.dumps({
+                        "source": "rpi",
+                        "type": "notify",
+                        "payload": "calibrate;ethernet;plug"
+                    }))
+                    show.run_calibrate_time()
+                    queue_message("notify", f"calibrate;stageComplete;1")
+                    await close_connection(connection_closed)
+                elif show.calibration_stage == 1: 
+                    avg_delay = show.run_calibrate_time()
+                    queue_message("reply", f"calibrate;delay;{avg_delay}")
+                elif show.calibration_stage == 2:
+                    print(msgPayload)
+                    show.run_calibrate_time(msgPayload)
+                    await websocket.send(json.dumps({
+                        "source": "rpi",
+                        "type": "notify",
+                        "payload": "calibrate;ethernet;unplug"
+                    }))
+                    show.run_calibrate_time()
+                    calibration_stage = CAL_STAGE.COMPLETE
+                    await close_connection(connection_closed)
             elif msgType == "flash":
                 queue_message("recieve", "flash")
                 payload = eval(response["payload"])
@@ -114,10 +139,18 @@ async def websocket_client(uri, show, led_strips, lighting_groups):
         print("Connecting")
         try:
             async with websockets.connect(uri) as websocket:
+                global calibration_stage
                 print("Connected")
-                while not messageQueue.empty(): messageQueue.get()
-                queue_message("initialize", f"{client_token};{mac_addr};{local_ip_addr}")
-                if show.calibrated: queue_message("reply", "calibrate;complete")
+                await websocket.send(json.dumps({
+                    "source": "rpi",
+                    "type": "initialize",
+                    "payload": f"{client_token};{mac_addr};{local_ip_addr}"
+                }))
+                while not messageQueue.empty(): 
+                    await websocket.send(messageQueue.get())
+                if calibration_stage == CAL_STAGE.COMPLETE: 
+                    queue_message("reply", "calibrate;complete")
+                    calibration_stage = CAL_STAGE.IDLE
                 reconnect_delay = 1
                 connection_closed = asyncio.Event()
 

@@ -4,6 +4,8 @@ import subprocess
 import os
 import collections
 from dotenv import load_dotenv
+from datetime import datetime, timedelta
+from math import ceil
 load_dotenv()
 
 from enum import Enum
@@ -13,14 +15,14 @@ from wsHandler import websocket_client, queue_message
 
 server_ip = os.getenv("SERVER_IP")
 server_port = os.getenv("SERVER_PORT")
+dev_mode = eval(os.getenv("DEV_MODE"))
 
 print("Waiting for WiFi")
 
-while True:
+while True and not dev_mode:
     output = subprocess.check_output(['ifconfig', 'wlan0'], text=True)
     if f"inet {'.'.join(server_ip.split('.')[:2])}" in output: break
     time.sleep(3)
-    
 
 class BoardStatus(Enum):
     IDLE = 0
@@ -30,6 +32,7 @@ class BoardStatus(Enum):
 class Show:
     start_time = 0
     calibrated = False
+    calibration_stage = None
 
     def set_show_start(self, time):
         if not self.calibrated: raise SystemError("Trying to start show without board being calibrated")
@@ -38,64 +41,98 @@ class Show:
         self.start_time = time
         board_status = BoardStatus.PLAYING
         for strip in led_strips:
-            led_strips[strip].init_ws()
+            led_strips[strip].begin()
         queue_message("recieve", "showStart")
 
     def set_show_lights(self, lightQueue):
         global commands
         commands = lightQueue
 
-    def run_calibrate_time(self):
+    def run_calibrate_time(self, server_time=None):
+        # if dev_mode:
+        #     self.calibrated = True
+        #     return
+        
         global board_status
         board_status = BoardStatus.PROCESSING
+
         try:
-            retry_count = 0
-            while True:
-                if retry_count > 20: raise SystemError("Failed to detect ethernet connection")
-                print(f"Waiting for ethernet connection, retry count {retry_count}")
-                output = subprocess.check_output(['ip', 'link', 'show', "eth0"], text=True)
-                if "state UP" in output: break
-                retry_count += 1
-                time.sleep(1)
-            print("Connection detected, waiting for RPi to switch to ethernet")
-            subprocess.run(['sudo', 'rfkill', 'block', 'wifi'])
-            retry_count = 0
-            while True:
-                if retry_count > 20: raise SystemError("Failed to connect via ethernet")
-                print(f"Waiting to establish ethernet network connection, retry count {retry_count}")
-                output = subprocess.check_output(['ifconfig', 'eth0'], text=True)
-                if "inet 192.192" in output: break
-                retry_count += 1
-                time.sleep(3)
-            print("Running calibration")
-            subprocess.run(["sudo", "sntp", "-s", "time.asia.apple.com"])
-            self.calibrated = True
-            board_status = BoardStatus.IDLE
-            print("Calibration complete, waiting for ethernet to be unplugged")
-            retry_count = 0
-            while True:
-                if retry_count > 20: raise SystemError("Failed to unplug ethernet connection")
-                print(f"Waiting for ethernet connection to be unplugged, retry count {retry_count}")
-                output = subprocess.check_output(['ip', 'link', 'show', "eth0"], text=True)
-                if "state DOWN" in output: break
-                retry_count += 1
-                time.sleep(1)
-            print("Ethernet disconnected, waiting for RPi to switch to WiFi")
-            # subprocess.run(['sudo', 'rfkill', 'unblock', 'wifi'])
-            # retry_count = 0
-            # while True:
-            #     if retry_count > 20: raise SystemError("Failed to establish WiFi connection")
-            #     print(f"Waiting for WiFi connection, retry count {retry_count}")
-            #     output = subprocess.check_output(['ifconfig', 'wlan0'], text=True)
-            #     if "inet 192.192" in output: break
-            #     retry_count += 1
-            #     time.sleep(3)
-            print("Wifi connected, restarting connection")
+            if self.calibration_stage == None:
+                print("Running calibration stage 0")
+                if not dev_mode:
+                    retry_count = 0
+                    while True:
+                        if retry_count > 20: raise SystemError("Failed to detect ethernet connection")
+                        print(f"Waiting for ethernet connection, retry count {retry_count}")
+                        output = subprocess.check_output(['ip', 'link', 'show', "eth0"], text=True)
+                        if "state UP" in output: break
+                        retry_count += 1
+                        time.sleep(1)
+                    print("Connection detected, waiting for RPi to switch to ethernet")
+                    subprocess.run(['sudo', 'rfkill', 'block', 'wifi'])
+                    retry_count = 0
+                    while True:
+                        if retry_count > 20: raise SystemError("Failed to connect via ethernet")
+                        print(f"Waiting to establish ethernet network connection, retry count {retry_count}")
+                        output = subprocess.check_output(['ifconfig', 'eth0'], text=True)
+
+                        if "inet 192.192" in output: break
+                        retry_count += 1
+                        time.sleep(3)
+                self.calibration_stage = 1
+                print("Calibration stage 0 complete, prepping stage 1")
+                return 
+            if self.calibration_stage == 1:
+                print("Running calibration stage 1")
+                ping_out = subprocess.check_output(['ping', server_ip, '-c', '10', '-i', '0.2'], text=True)
+                avg_delay = float(ping_out.split('\n')[-2].split('/')[4])
+                self.calibration_stage = 2
+                print("Calibration stage 1 complete, prepping stage 2")
+                return avg_delay
+            if self.calibration_stage == 2:
+                print("Running calibration stage 2")
+                print(server_time)
+                if server_time == None:
+                    raise ValueError("Server time not provided")
+                if not dev_mode:
+                    subprocess.run(['sudo', 'timedatectl', 'set-time', server_time])
+                self.calibration_stage = 3
+                print("Calibration stage 2 complete, prepping stage 3")
+                return 
+            if self.calibration_stage == 3:
+                print("Running calibration stage 3")
+                self.calibrated = True
+                board_status = BoardStatus.IDLE
+                self.calibration_stage = None
+                print("Calibration complete, waiting for ethernet to be unplugged")
+                if not dev_mode:
+                    retry_count = 0
+                    while True:
+                        if retry_count > 20: raise SystemError("Failed to unplug ethernet connection")
+                        print(f"Waiting for ethernet connection to be unplugged, retry count {retry_count}")
+                        output = subprocess.check_output(['ip', 'link', 'show', "eth0"], text=True)
+                        if "state DOWN" in output: break
+                        retry_count += 1
+                        time.sleep(1)
+                    print("Ethernet disconnected, waiting for RPi to switch to WiFi")
+                    subprocess.run(['sudo', 'rfkill', 'unblock', 'wifi'])
+                    retry_count = 0
+                    while True:
+                        if retry_count > 20: raise SystemError("Failed to establish WiFi connection")
+                        print(f"Waiting for WiFi connection, retry count {retry_count}")
+                        output = subprocess.check_output(['ifconfig', 'wlan0'], text=True)
+                        if "inet 192.192" in output: break
+                        retry_count += 1
+                        time.sleep(3)
+                print("Wifi connected, calibration completed, restarting connection")
+                return True
         except Exception as e:
             board_status = BoardStatus.IDLE
+            self.calibration_stage = None
             print(f"Calibration failed with error: {e}")
             queue_message("throw", f"calibrate;{e}")
             return "error"
+        
 
     def terminate_show(self):
         print(f"Terminating show")

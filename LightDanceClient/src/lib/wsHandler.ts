@@ -63,6 +63,19 @@ export function handleWSMessage(message: MessageType) {
                 setBoardCalibrate(clientAddr, "calibrated");
                 setBoardStatus(clientAddr, "connected");
             }
+        } else if (parsedPayload[1] == "ethernet") {
+            const clientName = boards.find((brd) => brd.id === clientAddr)?.name;
+            if (!clientName)
+                return showNotification({
+                    title: "Error",
+                    message: `Recieved ethernet update notification from unknown board ${clientAddr}`,
+                    color: "red",
+                });
+            showNotification({
+                title: `Ethernet Update for ${clientName}`,
+                message: `Please ${parsedPayload[2]} ${clientName}'s ethernet`,
+                autoClose: 5000,
+            });
         } else if (parsedPayload[1] == "welcome") {
             showNotification({
                 title: "Received WS Welcome Message",

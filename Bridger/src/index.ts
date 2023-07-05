@@ -46,6 +46,7 @@ function sendBridgerMessage(target: BoardTypes, ids: string[] | null, message: B
     }
     const targets = ids ?? Object.keys(rpiInstances);
     targets.forEach((id) => {
+        console.log(`Sending message ${JSON.stringify(jsonMessage)}`);
         rpiInstances[id].ws.send(JSON.stringify(jsonMessage));
     });
 }
