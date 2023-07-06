@@ -58,6 +58,7 @@ export const useBoardStore = create<{
     localStorageLoadedInSession: false,
 
     async loadFromLocalStorage() {
+        console.log("Loading from local storage");
         if (!(await exists("board_configs.json", { dir: BaseDirectory.AppData })))
             await writeTextFile("board_configs.json", JSON.stringify({ boards: [], audio: null }), {
                 dir: BaseDirectory.AppData,
@@ -142,7 +143,7 @@ export const useBoardStore = create<{
         console.log(get().boards.find((board) => board.id === boardId));
         set((state) => ({
             boards: state.boards.map((board) =>
-                board.id === boardId ? { ...board, ip: ip, status: "connected", calibrationStat: "none" } : board
+                board.id === boardId ? { ...board, ip: ip, status: "connected" } : board
             ),
         }));
     },

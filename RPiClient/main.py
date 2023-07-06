@@ -1,26 +1,25 @@
-import time
 import asyncio
-import subprocess
-import os
 import collections
-from dotenv import load_dotenv
-load_dotenv()
+import os
+import subprocess
+import time
 
 from enum import Enum
-
-from lightGroups import reset_lighting_groups
-from wsHandler import websocket_client, queue_message
+from dotenv import load_dotenv
+load_dotenv()
 
 server_ip = os.getenv("SERVER_IP")
 server_port = os.getenv("SERVER_PORT")
 dev_mode = eval(os.getenv("DEV_MODE"))
 
 print("Waiting for WiFi")
-
 while True and not dev_mode:
     output = subprocess.check_output(['ifconfig', 'wlan0'], text=True)
     if f"inet {'.'.join(server_ip.split('.')[:2])}" in output: break
     time.sleep(3)
+
+from lightGroups import reset_lighting_groups
+from wsHandler import websocket_client, queue_message
 
 class BoardStatus(Enum):
     IDLE = 0
@@ -98,9 +97,9 @@ class Show:
                 cur_time = time.time()
                 print(f"Running calibration stage 3, payload is ${server_time}")
                 server_time = int(server_time)
-                time_diff = abs(server_time - cur_time * 1000)
+                time_diff = server_time - cur_time * 1000
                 print(f"Difference between server and client: {time_diff}")
-                if time_diff > 50:
+                if abs(time_diff) > 50:
                     self.calibration_stage = 2
                     return (False, time_diff)
                 self.calibration_stage = 4

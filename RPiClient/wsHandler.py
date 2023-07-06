@@ -17,15 +17,20 @@ load_dotenv()
 client_token = os.getenv("CLIENT_TOKEN")
 messageQueue = Queue(0)
 
-wlan0_output = subprocess.check_output(["ifconfig", "wlan0"], text=True)
-search_result = [line for line in wlan0_output.split('\n') if 'ether' in line]
-if not search_result: raise SystemError("Unable to find mac address for wlan0")
-mac_addr = search_result[0].split()[1]
-mac_addr = mac_addr.replace(":", "").upper()
+emulate_board = eval(os.getenv("EMULATE_HARDWARE"))
+
+if emulate_board:
+    mac_addr = "AABBCCDDEEFF"
+    local_ip_addr = "192.192.192.256"
+else:
+    wlan0_output = subprocess.check_output(["ifconfig", "wlan0"], text=True)
+    search_result = [line for line in wlan0_output.split('\n') if 'ether' in line]
+    if not search_result: raise SystemError("Unable to find mac address for wlan0")
+    mac_addr = search_result[0].split()[1]
+    mac_addr = mac_addr.replace(":", "").upper()
+    local_ip_addr = [line for line in wlan0_output.split('\n') if 'inet ' in line][0].split(' ')[9]
 
 print(f"Mac Address: {mac_addr}")
-
-local_ip_addr = wlan0_output.split('\n')[1].split(' ')[9]
 
 tested_delay = None
 
@@ -144,7 +149,6 @@ async def send_messages(websocket, connection_closed):
         await asyncio.sleep(0.001)
 
 async def websocket_client(uri, show, led_strips, lighting_groups):
-    reconnect_delay = 1
     while True:
         print("Connecting")
         try:
@@ -161,7 +165,6 @@ async def websocket_client(uri, show, led_strips, lighting_groups):
                 if calibration_stage == CAL_STAGE.COMPLETE: 
                     queue_message("reply", "calibrate;complete")
                     calibration_stage = CAL_STAGE.IDLE
-                reconnect_delay = 1
                 connection_closed = asyncio.Event()
 
                 await asyncio.gather(
@@ -171,8 +174,8 @@ async def websocket_client(uri, show, led_strips, lighting_groups):
         except ConnectionClosed: pass
         except Exception as e:
             print(f"An error occurred while connecting: {e}")
-            print(f"Reconnecting in {reconnect_delay} seconds")
+            print(f"Reconnecting in 2 seconds")
 
-        await asyncio.sleep(reconnect_delay)
-        if reconnect_delay < 16: reconnect_delay *= 2
+        await asyncio.sleep(2)
+        
         

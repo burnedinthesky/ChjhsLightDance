@@ -23,8 +23,7 @@ const ConfApp = ({ appMode }: ConfAppProps) => {
     const [lANIp, setLANIp] = useState<string>("Loading");
     const [focusedBoard, setFocusedBoard] = useState<string | null>(null);
 
-    const { loadFromLocalStorage, setEditSinceLastFlash } = useBoardStore((state) => ({
-        loadFromLocalStorage: state.loadFromLocalStorage,
+    const { setEditSinceLastFlash } = useBoardStore((state) => ({
         setEditSinceLastFlash: state.setEditSinceLastFlash,
     }));
 
@@ -53,16 +52,7 @@ const ConfApp = ({ appMode }: ConfAppProps) => {
                 });
             });
 
-        loadFromLocalStorage()
-            .then(() => sendWSMessage("refresh", "rpi"))
-            .catch(() => {
-                showNotification({
-                    title: "Error",
-                    message: "Failed to load boards from local storage, reload the app to try again.",
-                    color: "red",
-                    autoClose: false,
-                });
-            });
+        sendWSMessage("refresh", "rpi");
     }, [appMode]);
 
     return (

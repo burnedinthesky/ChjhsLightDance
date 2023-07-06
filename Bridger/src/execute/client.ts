@@ -48,26 +48,17 @@ export const ExecuteClientMessage = (
             if (parsedPayload[1] == "delay") {
                 let delay_time = parseFloat(parsedPayload[2]);
                 let cur_time = new Date();
-                let target_time = new Date(cur_time.getTime() + 3000);
+                let target_time = new Date(Math.ceil(cur_time.getTime() / 1000) * 1000 + 3000);
                 let new_date = `${target_time.getFullYear()}-${target_time.getMonth() + 1}-${target_time.getDate()}`;
                 let new_time = `${target_time.getHours()}:${target_time.getMinutes()}:${target_time.getSeconds()}`;
                 while (true) {
                     let current_time = new Date();
-                    if (target_time.getTime() - current_time.getTime() <= delay_time + 400) break;
+                    if (target_time.getTime() - current_time.getTime() <= delay_time + 50) break;
                 }
-                console.log(`Payload: ${new_date} ${new_time}`);
+                console.log(`Sending new date time: ${new_date} ${new_time}`);
                 sendBridgerMessage("rpi", [clientId], {
                     type: "calibrate",
                     payload: `${new_date} ${new_time}`,
-                });
-            } else if (parsedPayload[1] == "success") {
-                sendBridgerMessage("manager", null, {
-                    type: "notify",
-                    payload: `${clientId};calibrate;success;${parsedPayload[2]}`,
-                });
-                sendBridgerMessage("manager", null, {
-                    type: "notify",
-                    payload: `${clientId};ethernet;unplug`,
                 });
             } else if (parsedPayload[1] == "complete") {
                 sendBridgerMessage("manager", null, {
@@ -99,6 +90,15 @@ export const ExecuteClientMessage = (
                         type: "calibrate",
                         payload: `${new Date().getTime()}`,
                     });
+            } else if (parsedPayload[1] == "success") {
+                sendBridgerMessage("manager", null, {
+                    type: "notify",
+                    payload: `${clientId};calibrate;success;${parsedPayload[2]}`,
+                });
+                sendBridgerMessage("manager", null, {
+                    type: "notify",
+                    payload: `${clientId};ethernet;unplug`,
+                });
             }
         }
     } else if (message.type === "throw") {

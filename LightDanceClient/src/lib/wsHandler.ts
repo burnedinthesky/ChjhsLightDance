@@ -59,6 +59,12 @@ export function handleWSMessage(message: MessageType) {
             if (parsedPayload[2] === "processing") {
                 setBoardCalibrate(clientAddr, "calibrating");
                 setBoardStatus(clientAddr, "processing");
+            } else if (parsedPayload[2] === "success") {
+                showNotification({
+                    title: `Delay check passed in Board ${clientAddr}`,
+                    message: `Check passed with delay ${Math.ceil(parseFloat(parsedPayload[3]) * 100) / 100} ms`,
+                    autoClose: 18000,
+                });
             } else if (parsedPayload[2] === "done") {
                 setBoardCalibrate(clientAddr, "calibrated");
                 setBoardStatus(clientAddr, "connected");
@@ -74,7 +80,7 @@ export function handleWSMessage(message: MessageType) {
             showNotification({
                 title: `Ethernet Update for ${clientName}`,
                 message: `Please ${parsedPayload[2]} ${clientName}'s ethernet`,
-                autoClose: 5000,
+                autoClose: 18000,
             });
         } else if (parsedPayload[1] == "welcome") {
             showNotification({
@@ -88,6 +94,7 @@ export function handleWSMessage(message: MessageType) {
 
         message.payload.split(";").forEach((board) => {
             const [mac_addr, ip] = board.split(",");
+            console.log(mac_addr, ip);
             if (!mac_addr) return;
             console.log(mac_addr, ip);
             console.log(boards.find((b) => b.id === mac_addr));
