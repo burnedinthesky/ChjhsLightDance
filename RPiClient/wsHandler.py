@@ -17,7 +17,7 @@ load_dotenv()
 client_token = os.getenv("CLIENT_TOKEN")
 messageQueue = Queue(0)
 
-wlan0_output = subprocess.check_output(["ifconfig"], text=True)
+wlan0_output = subprocess.check_output(["ifconfig", "wlan0"], text=True)
 search_result = [line for line in wlan0_output.split('\n') if 'ether' in line]
 if not search_result: raise SystemError("Unable to find mac address for wlan0")
 mac_addr = search_result[0].split()[1]
@@ -25,8 +25,9 @@ mac_addr = mac_addr.replace(":", "").upper()
 
 print(f"Mac Address: {mac_addr}")
 
-host_name = socket.gethostname()
-local_ip_addr = socket.gethostbyname(host_name)
+local_ip_addr = wlan0_output.split('\n')[1].split(' ')[9]
+
+tested_delay = None
 
 class CAL_STAGE(Enum):
     IDLE = 0
@@ -85,19 +86,28 @@ async def receive_messages(websocket, show, led_strips, lighting_groups, connect
                     queue_message("notify", f"calibrate;stageComplete;1")
                     await close_connection(connection_closed)
                 elif show.calibration_stage == 1: 
+                    global tested_delay
                     avg_delay = show.run_calibrate_time()
+                    tested_delay = avg_delay
                     queue_message("reply", f"calibrate;delay;{avg_delay}")
                 elif show.calibration_stage == 2:
                     print(msgPayload)
                     show.run_calibrate_time(msgPayload)
-                    await websocket.send(json.dumps({
-                        "source": "rpi",
-                        "type": "notify",
-                        "payload": "calibrate;ethernet;unplug"
-                    }))
-                    show.run_calibrate_time()
-                    calibration_stage = CAL_STAGE.COMPLETE
-                    await close_connection(connection_closed)
+                    queue_message("notify", f"calibrate;stageComplete;2")
+                elif show.calibration_stage == 3:
+                    print(msgPayload)
+                    success, delay = show.run_calibrate_time(msgPayload)
+                    if not success:
+                        queue_message("reply", f"calibrate;delay;{tested_delay}")
+                    else:
+                        await websocket.send(json.dumps({
+                            "source": "rpi",
+                            "type": "notify",
+                            "payload": f"calibrate;success;{delay}"
+                        }))
+                        show.run_calibrate_time()
+                        calibration_stage = CAL_STAGE.COMPLETE
+                        await close_connection(connection_closed)
             elif msgType == "flash":
                 queue_message("recieve", "flash")
                 payload = eval(response["payload"])

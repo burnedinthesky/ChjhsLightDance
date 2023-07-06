@@ -4,8 +4,6 @@ import subprocess
 import os
 import collections
 from dotenv import load_dotenv
-from datetime import datetime, timedelta
-from math import ceil
 load_dotenv()
 
 from enum import Enum
@@ -49,10 +47,6 @@ class Show:
         commands = lightQueue
 
     def run_calibrate_time(self, server_time=None):
-        # if dev_mode:
-        #     self.calibrated = True
-        #     return
-        
         global board_status
         board_status = BoardStatus.PROCESSING
 
@@ -90,17 +84,29 @@ class Show:
                 print("Calibration stage 1 complete, prepping stage 2")
                 return avg_delay
             if self.calibration_stage == 2:
-                print("Running calibration stage 2")
+                print(f"Running calibration stage 2, payload is {server_time}")
                 print(server_time)
                 if server_time == None:
                     raise ValueError("Server time not provided")
                 if not dev_mode:
                     subprocess.run(['sudo', 'timedatectl', 'set-time', server_time])
                 self.calibration_stage = 3
+                time.sleep(1)
                 print("Calibration stage 2 complete, prepping stage 3")
                 return 
             if self.calibration_stage == 3:
-                print("Running calibration stage 3")
+                cur_time = time.time()
+                print(f"Running calibration stage 3, payload is ${server_time}")
+                server_time = int(server_time)
+                time_diff = abs(server_time - cur_time * 1000)
+                print(f"Difference between server and client: {time_diff}")
+                if time_diff > 50:
+                    self.calibration_stage = 2
+                    return (False, time_diff)
+                self.calibration_stage = 4
+                return (True, time_diff)
+            if self.calibration_stage == 4:
+                print("Running calibration stage 4")
                 self.calibrated = True
                 board_status = BoardStatus.IDLE
                 self.calibration_stage = None

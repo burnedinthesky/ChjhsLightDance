@@ -36,7 +36,7 @@ export const useBoardStore = create<{
         config: { dma?: string | null; pin?: string | null; led_count?: number | null }
     ): void;
     renameLEDStrip(LEDId: string, newName: string): void;
-    deleteLEDStrip(boardId: string, LEDId: string): void;
+    deleteLEDStrip(LEDId: string): void;
 
     createLG(boardId: string, type: "ws" | "el", name?: string): void;
     setWSLGConfig(
@@ -194,27 +194,27 @@ export const useBoardStore = create<{
         set((state) => ({
             boards: state.boards
                 .sort((a, b) => a.assignedNum - b.assignedNum)
-                .map((board, i) => {
+                .map((board, boardCount) => {
                     let ledStrips = cloneDeep(board.ledStrips);
-                    ledStrips = ledStrips.map((ls, i) => ({
+                    ledStrips = ledStrips.map((ls, j) => ({
                         ...ls,
-                        assignedNum: i + 1,
+                        assignedNum: j + 1,
                     }));
-
+                    console.log(boardCount);
                     const lightGroups = cloneDeep(board.lightGroups);
                     let ELLG = lightGroups.filter((lg) => lg.type === "el");
                     let WSLG = lightGroups.filter((lg) => lg.type === "ws");
-                    ELLG = ELLG.map((lg, i) => ({
+                    ELLG = ELLG.map((lg, j) => ({
                         ...lg,
-                        assignedNum: i + 1,
+                        assignedNum: j + 1,
                     }));
-                    WSLG = WSLG.map((lg, i) => ({
+                    WSLG = WSLG.map((lg, j) => ({
                         ...lg,
-                        assignedNum: i + 1,
+                        assignedNum: j + 1,
                     }));
                     return {
                         ...board,
-                        assignedNum: i + 1,
+                        assignedNum: boardCount + 1,
                         ledStrips,
                         lightGroups: board.lightGroups.map((lg) =>
                             lg.type === "el" ? ELLG.find((l) => l.id === lg.id)! : WSLG.find((l) => l.id === lg.id)!
@@ -234,7 +234,7 @@ export const useBoardStore = create<{
                           ledStrips: [
                               ...board.ledStrips,
                               {
-                                  id: `B${board.assignedNum}S${board.ledStrips.length + 1}`,
+                                  id: uuidv4(),
                                   assignedNum: board.ledStrips.length + 1,
                                   name: name ? name : `LED Strip ${board.ledStrips.length + 1}`,
                                   dma: null,
@@ -333,7 +333,6 @@ export const useBoardStore = create<{
     },
 
     setWSLGConfig(LGId, config) {
-        console.log(config.pixelPairs);
         set((state) => ({
             ...state,
             boards: state.boards.map((board) => ({

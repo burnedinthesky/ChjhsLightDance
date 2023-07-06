@@ -26,7 +26,10 @@ const WSConfig = ({ config, selectedBoard }: WSConfigProps) => {
                     <Select
                         size="sm"
                         className="w-40"
-                        data={board.ledStrips.map((strip) => strip.id)}
+                        data={board.ledStrips.map((strip) => ({
+                            value: strip.id,
+                            label: `B${board.assignedNum}S${strip.assignedNum}`,
+                        }))}
                         value={config.wsConfig.ledStrip}
                         onChange={(v) => {
                             setWSLGConfig(config.id, { stripId: v });

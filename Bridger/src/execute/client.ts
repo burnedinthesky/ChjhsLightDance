@@ -53,12 +53,21 @@ export const ExecuteClientMessage = (
                 let new_time = `${target_time.getHours()}:${target_time.getMinutes()}:${target_time.getSeconds()}`;
                 while (true) {
                     let current_time = new Date();
-                    if (target_time.getMilliseconds() - current_time.getMilliseconds() <= delay_time + 10) break;
+                    if (target_time.getTime() - current_time.getTime() <= delay_time + 400) break;
                 }
                 console.log(`Payload: ${new_date} ${new_time}`);
                 sendBridgerMessage("rpi", [clientId], {
                     type: "calibrate",
                     payload: `${new_date} ${new_time}`,
+                });
+            } else if (parsedPayload[1] == "success") {
+                sendBridgerMessage("manager", null, {
+                    type: "notify",
+                    payload: `${clientId};calibrate;success;${parsedPayload[2]}`,
+                });
+                sendBridgerMessage("manager", null, {
+                    type: "notify",
+                    payload: `${clientId};ethernet;unplug`,
                 });
             } else if (parsedPayload[1] == "complete") {
                 sendBridgerMessage("manager", null, {
@@ -85,6 +94,11 @@ export const ExecuteClientMessage = (
                             }),
                         5000
                     );
+                else if (parsedPayload[2] == "2")
+                    sendBridgerMessage("rpi", [clientId], {
+                        type: "calibrate",
+                        payload: `${new Date().getTime()}`,
+                    });
             }
         }
     } else if (message.type === "throw") {

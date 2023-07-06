@@ -72,7 +72,15 @@ export async function FlashShowData(hwConf: BoardData[]) {
             type: "rpi",
             boardNumber: board.assignedNum,
             lsConfig: board.ledStrips,
-            lgConfig: board.lightGroups,
+            lgConfig: board.lightGroups.map((group) => ({
+                ...group,
+                wsConfig: {
+                    ...group.wsConfig,
+                    ledStrip: `B${board.assignedNum}S${
+                        board.ledStrips.find((strip) => strip.id === group.wsConfig.ledStrip)!.assignedNum
+                    }`,
+                },
+            })),
             lightConfig,
         };
     });

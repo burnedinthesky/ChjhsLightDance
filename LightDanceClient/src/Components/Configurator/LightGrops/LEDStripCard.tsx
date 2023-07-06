@@ -36,7 +36,7 @@ const LEDStripCard = ({ config, selectedBoard }: LEDStripCard) => {
                 <ActionIcon
                     onClick={(e) => {
                         e.stopPropagation();
-                        deleteLEDStrip(selectedBoard!, config.id);
+                        deleteLEDStrip(config.id);
                     }}
                 >
                     <TrashIcon className="w-4 text-blue-800" />

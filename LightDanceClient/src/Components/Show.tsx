@@ -23,14 +23,17 @@ const ShowDisplay = () => {
 
     const [timeUntilStart, setTimeUntilStart] = useState<number | null>(null);
 
-    const { showId, boardState, showState, initializeShow, completeShow, endShow } = useShowStore((state) => ({
-        showId: state.showId,
-        boardState: state.boardState,
-        showState: state.showState,
-        initializeShow: state.initializeShow,
-        completeShow: state.completeShow,
-        endShow: state.endShow,
-    }));
+    const { showId, boardState, showState, audioDelay, initializeShow, completeShow, endShow } = useShowStore(
+        (state) => ({
+            showId: state.showId,
+            boardState: state.boardState,
+            showState: state.showState,
+            audioDelay: state.audioDelay,
+            initializeShow: state.initializeShow,
+            completeShow: state.completeShow,
+            endShow: state.endShow,
+        })
+    );
 
     const startTime = useRef<Date | null>(null);
     const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -42,10 +45,8 @@ const ShowDisplay = () => {
             if (audioRef.current === null) throw new Error("Audio ref is null");
             audioRef.current!.src = src;
             const startTimeDate = setStartTime();
-            initializeShow(
-                boards.map((board) => ({ id: board.id, name: board.name })),
-                startTimeDate.getTime()
-            );
+            initializeShow(boards.map((board) => ({ id: board.id, name: board.name })));
+            sendWSMessage("showStart", (startTimeDate.getTime() + audioDelay).toString());
             startTime.current = startTimeDate;
         });
     }, []);
@@ -74,20 +75,23 @@ const ShowDisplay = () => {
         if (audioRef.current === null) throw new Error("Audio ref is null");
 
         const unreadyBoards = Object.values(boardState).filter((board) => board.ready === "pending");
-        if (unreadyBoards.length)
+        if (unreadyBoards.length) {
             endShow(
                 "startFailed",
                 unreadyBoards.map((board) => board.name)
             );
-        audioRef.current.play();
+            sendWSMessage("showStop", "");
+        } else audioRef.current.play();
     }, [showState, timeUntilStart]);
 
     return (
         <Modal
             opened={true}
             onClose={() => {
-                if (showState === "complete") endShow("complete");
-                else
+                if (showState === "complete") {
+                    endShow("complete");
+                    sendWSMessage("showStop", "");
+                } else
                     showNotification({
                         message: "Show is in progress, terminate the show to close modal!",
                         autoClose: 10000,
@@ -111,7 +115,7 @@ const ShowDisplay = () => {
                             </p>
                             <div className="mt-3 grid grid-cols-2 border border-slate-400 divide-x divide-y divide-slate-400">
                                 {Object.values(boardState).map((board) => (
-                                    <div className="p-2">
+                                    <div key={board.id} className="p-2">
                                         <p>
                                             {board.name}:{" "}
                                             {board.ready === "done" ? (
@@ -146,6 +150,7 @@ const ShowDisplay = () => {
                         size="xs"
                         onClick={() => {
                             endShow("terminated");
+                            sendWSMessage("showStop", "");
                         }}
                     >
                         Close
@@ -175,6 +180,7 @@ const ShowDisplay = () => {
                                     size="xs"
                                     onClick={() => {
                                         endShow("terminated");
+                                        sendWSMessage("showStop", "");
                                     }}
                                 >
                                     Terminate
