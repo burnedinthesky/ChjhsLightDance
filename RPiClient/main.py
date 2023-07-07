@@ -52,6 +52,7 @@ class Show:
         try:
             if self.calibration_stage == None:
                 print("Running calibration stage 0")
+                self.calibrated = False
                 if not dev_mode:
                     retry_count = 0
                     while True:

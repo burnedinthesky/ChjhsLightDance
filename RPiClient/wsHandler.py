@@ -162,7 +162,7 @@ async def websocket_client(uri, show, led_strips, lighting_groups):
                 }))
                 while not messageQueue.empty(): 
                     await websocket.send(messageQueue.get())
-                if calibration_stage == CAL_STAGE.COMPLETE: 
+                if calibration_stage == CAL_STAGE.COMPLETE or show.calibrated: 
                     queue_message("reply", "calibrate;complete")
                     calibration_stage = CAL_STAGE.IDLE
                 connection_closed = asyncio.Event()
