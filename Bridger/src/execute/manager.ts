@@ -1,4 +1,3 @@
-import { z } from "zod";
 import { BoardTypes, BridgerMessageType, FlashData, MessageType } from "../messages.types";
 
 export const ExecuteManagerMessage = (

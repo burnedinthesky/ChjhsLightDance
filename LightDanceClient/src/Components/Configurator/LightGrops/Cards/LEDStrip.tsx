@@ -1,24 +1,24 @@
 import { NumberInput, Select } from "@mantine/core";
 import { useBoardStore } from "../../../../Stores/Boards";
-import { LightingGroupData } from "../../../../types/Boards";
+import { LEDStripData, LightingGroupData } from "../../../../types/Boards";
 import { DMAChannels, GPIOPins } from "../../../../lib/hardwardInfo";
 
-interface WSConfigProps {
-    config: LightingGroupData;
+interface LEDStripConfCard {
+    config: LEDStripData;
     selectedBoard: string | null;
 }
 
-const WSConfig = ({ config, selectedBoard }: WSConfigProps) => {
-    const { board, setWSLGConfig } = useBoardStore((state) => ({
+const LEDStripConfCard = ({ config, selectedBoard }: LEDStripConfCard) => {
+    const { board, setLEDStripConfig } = useBoardStore((state) => ({
         board: selectedBoard ? state.boards.find((brd) => brd.id === selectedBoard) : null,
-        setWSLGConfig: state.setWSLGConfig,
+        setLEDStripConfig: state.setLEDStripConfig,
     }));
 
-    if (!board || config.wsConfig === null) return null;
+    if (!board) return null;
 
     return (
         <div>
-            <p className="mt-2 mb-2">ID: {`B${board.assignedNum}W${config.assignedNum}`}</p>
+            <p className="mt-2 mb-2">ID: {`B${board.assignedNum}S${config.assignedNum}`}</p>
             <div className="grid grid-cols-2 gap-y-2 items-center">
                 <div className="flex gap-4 items-center">
                     <p>DMA Channel:</p>
@@ -26,9 +26,9 @@ const WSConfig = ({ config, selectedBoard }: WSConfigProps) => {
                         size="sm"
                         className="w-40"
                         data={DMAChannels}
-                        value={config.wsConfig.dma}
+                        value={config.dma}
                         onChange={(v) => {
-                            setWSLGConfig(config.id, { dma: v });
+                            setLEDStripConfig(config.id, { dma: v });
                         }}
                         searchable
                         dropdownPosition="bottom"
@@ -41,9 +41,9 @@ const WSConfig = ({ config, selectedBoard }: WSConfigProps) => {
                         size="sm"
                         className="w-40"
                         data={GPIOPins}
-                        value={config.wsConfig.pin}
+                        value={config.pin}
                         onChange={(v) => {
-                            setWSLGConfig(config.id, { pin: v });
+                            setLEDStripConfig(config.id, { pin: v });
                         }}
                         searchable
                         dropdownPosition="bottom"
@@ -55,9 +55,9 @@ const WSConfig = ({ config, selectedBoard }: WSConfigProps) => {
                     <NumberInput
                         size="sm"
                         className="w-40"
-                        value={config.wsConfig.led_count ?? ""}
-                        onChange={(v) => setWSLGConfig(config.id, { led_count: v === "" ? null : v })}
-                        min={0}
+                        value={config.led_count ?? ""}
+                        onChange={(v) => setLEDStripConfig(config.id, { led_count: v === "" ? null : v })}
+                        min={1}
                     />
                 </div>
             </div>
@@ -65,4 +65,4 @@ const WSConfig = ({ config, selectedBoard }: WSConfigProps) => {
     );
 };
 
-export default WSConfig;
+export default LEDStripConfCard;

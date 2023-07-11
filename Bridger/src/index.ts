@@ -36,6 +36,8 @@ function sendBridgerMessage(target: BoardTypes, ids: string[] | null, message: B
         ...message,
     };
 
+    console.log(`Sending message ${JSON.stringify(jsonMessage)}`);
+
     if (target == "manager") {
         if (managerInstance) managerInstance.send(JSON.stringify(jsonMessage));
         else managerMsgQueue.push(jsonMessage);
@@ -86,6 +88,8 @@ wss.on("connection", (ws: WebSocket, req) => {
 
         if (!dataObject) return;
 
+        console.log(dataObject);
+
         if (dataObject.source === "manager") {
             if (dataObject.type === "initialize") {
                 if (dataObject.payload !== process.env.MANAGER_API_KEY)
@@ -103,10 +107,16 @@ wss.on("connection", (ws: WebSocket, req) => {
                 return;
             } else if (dataObject.type === "refresh") {
                 if (dataObject.payload === "rpi") {
+                    console.log(
+                        `RPI Refresh Payload ${Object.keys(rpiInstances).reduce(
+                            (acc, id, i, arr) => acc + `${id},${rpiInstances[id].ip}${i === arr.length - 1 ? "" : ";"}`,
+                            ""
+                        )}`
+                    );
                     sendBridgerMessage("manager", null, {
                         type: "refresh",
                         payload: Object.keys(rpiInstances).reduce(
-                            (acc, id) => acc + `${id},${rpiInstances[id].ip}`,
+                            (acc, id, i, arr) => acc + `${id},${rpiInstances[id].ip}${i === arr.length - 1 ? "" : ";"}`,
                             ""
                         ),
                     });

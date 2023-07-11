@@ -1,7 +1,7 @@
 import { readTextFile, BaseDirectory, writeTextFile } from "@tauri-apps/api/fs";
 
 import { z } from "zod";
-import { BoardData } from "../types/Boards";
+import { BoardData, LEDStripData, LightingGroupData } from "../types/Boards";
 import { sendWSMessage } from "./wsPortal";
 import { invoke } from "@tauri-apps/api/tauri";
 import { UIFragment } from "../types/Frags";
@@ -11,12 +11,8 @@ type ShowFlash = Record<
     {
         type: "rpi";
         boardNumber: number;
-        lgConfig: {
-            id: string;
-            name: string;
-            assignedNum: number;
-            lights: string[];
-        }[];
+        lsConfig: LEDStripData[];
+        lgConfig: LightingGroupData[];
         lightConfig: Record<string, Record<string, string>[]>;
     }
 >;
@@ -63,9 +59,9 @@ export async function FlashShowData(hwConf: BoardData[]) {
     const compiledShowData: ShowFlash = {};
 
     hwConf.forEach((board) => {
-        if (board.status !== "connected") return;
+        // if (board.status !== "connected") return;
         const boardId = board.id;
-        const lightGroups = board.lightGroups.map((lg) => `B${board.assignedNum}G${lg.assignedNum}`);
+        const lightGroups = board.lightGroups.map((lg) => `B${board.assignedNum}W${lg.assignedNum}`);
 
         const lightConfig: Record<string, Record<string, string>[]> = {};
         lightGroups.forEach((lg) => {
@@ -75,7 +71,16 @@ export async function FlashShowData(hwConf: BoardData[]) {
         compiledShowData[boardId] = {
             type: "rpi",
             boardNumber: board.assignedNum,
-            lgConfig: board.lightGroups,
+            lsConfig: board.ledStrips,
+            lgConfig: board.lightGroups.map((group) => ({
+                ...group,
+                wsConfig: {
+                    ...group.wsConfig,
+                    ledStrip: `B${board.assignedNum}S${
+                        board.ledStrips.find((strip) => strip.id === group.wsConfig.ledStrip)!.assignedNum
+                    }`,
+                },
+            })),
             lightConfig,
         };
     });

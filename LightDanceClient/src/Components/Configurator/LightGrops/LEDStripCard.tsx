@@ -2,23 +2,24 @@ import { useState } from "react";
 import { ActionIcon, Button, Modal, TextInput } from "@mantine/core";
 import { PencilAltIcon, TrashIcon } from "@heroicons/react/outline";
 import { useBoardStore } from "../../../Stores/Boards";
-import { LightingGroupData } from "../../../types/Boards";
-import WSConfig from "./Cards/LGConfig";
+import { LEDStripData } from "../../../types/Boards";
+import LEDStripConfCard from "./Cards/LEDStrip";
 
-interface LightGroupCardProps {
-    config: LightingGroupData;
+interface LEDStripCard {
+    config: LEDStripData;
     selectedBoard: string | null;
 }
 
-const LightGroupCard = ({ config, selectedBoard }: LightGroupCardProps) => {
-    const { boardLG, renameLG, deleteLG } = useBoardStore((state) => ({
-        boardLG: selectedBoard ? state.boards.find((brd) => brd.id === selectedBoard)?.lightGroups ?? null : null,
-        selBoardNum: state.boards.find((brd) => brd.id === selectedBoard)!.assignedNum,
-        renameLG: state.renameLG,
-        deleteLG: state.deleteLG,
+const LEDStripCard = ({ config, selectedBoard }: LEDStripCard) => {
+    const { boardStrips, renameLEDStrip, deleteLEDStrip } = useBoardStore((state) => ({
+        boardStrips: selectedBoard ? state.boards.find((brd) => brd.id === selectedBoard)?.ledStrips ?? null : null,
+        renameLEDStrip: state.renameLEDStrip,
+        deleteLEDStrip: state.deleteLEDStrip,
     }));
 
     const [newGroupName, setNewGroupName] = useState<string | null>(null);
+
+    if (!boardStrips) return null;
 
     return (
         <div key={config.id} className="w-full bg-zinc-50 border border-zinc-400 rounded-lg py-4 px-7">
@@ -35,21 +36,21 @@ const LightGroupCard = ({ config, selectedBoard }: LightGroupCardProps) => {
                 <ActionIcon
                     onClick={(e) => {
                         e.stopPropagation();
-                        deleteLG(selectedBoard!, config.id);
+                        deleteLEDStrip(config.id);
                     }}
                 >
                     <TrashIcon className="w-4 text-blue-800" />
                 </ActionIcon>
             </div>
 
-            {config.type === "ws" && <WSConfig config={config} selectedBoard={selectedBoard} />}
+            <LEDStripConfCard config={config} selectedBoard={selectedBoard} />
 
             <Modal
                 opened={newGroupName !== null}
                 onClose={() => {
                     setNewGroupName(null);
                 }}
-                title="Rename Light Group"
+                title="Rename LED Strip"
                 centered
             >
                 <TextInput
@@ -62,9 +63,9 @@ const LightGroupCard = ({ config, selectedBoard }: LightGroupCardProps) => {
                     <Button
                         className="font-jbmono font-normal bg-blue-500 hover:bg-blue-600 transition-colors duration-100"
                         size="xs"
-                        disabled={newGroupName! === "" || boardLG!.some((lg) => lg.name === newGroupName!)}
+                        disabled={newGroupName! === "" || boardStrips!.some((strip) => strip.name === newGroupName!)}
                         onClick={() => {
-                            renameLG(config.id, newGroupName!);
+                            renameLEDStrip(config.id, newGroupName!);
                             setNewGroupName(null);
                         }}
                     >
@@ -76,4 +77,4 @@ const LightGroupCard = ({ config, selectedBoard }: LightGroupCardProps) => {
     );
 };
 
-export default LightGroupCard;
+export default LEDStripCard;

@@ -4,6 +4,7 @@ import { invoke } from "@tauri-apps/api/tauri";
 import { appDataDir, join } from "@tauri-apps/api/path";
 import { showNotification } from "@mantine/notifications";
 import { useMetaDataStore } from "../../Stores/MetaData";
+import { useShowStore } from "../../Stores/Show";
 
 interface ConfDrawerProps {
     opened: boolean;
@@ -13,6 +14,11 @@ interface ConfDrawerProps {
 const ConfDrawer = ({ opened, setOpened }: ConfDrawerProps) => {
     const { logs } = useWSConvStore((state) => ({
         logs: state.logs,
+    }));
+
+    const { audioDelay, setAudioDelay } = useShowStore((state) => ({
+        audioDelay: state.audioDelay,
+        setAudioDelay: state.setAudioDelay,
     }));
 
     const { startShowFrom, setStartShowFrom } = useMetaDataStore((state) => ({
@@ -66,6 +72,17 @@ const ConfDrawer = ({ opened, setOpened }: ConfDrawerProps) => {
                             value={startShowFrom}
                             onChange={(e) => {
                                 setStartShowFrom(typeof e === "string" ? 0 : e);
+                            }}
+                            min={0}
+                        />
+                    </div>
+                    <div className="w-full flex justify-between items-center">
+                        <p>Audio Delay</p>
+                        <NumberInput
+                            className="w-20"
+                            value={audioDelay}
+                            onChange={(e) => {
+                                setAudioDelay(typeof e === "string" ? 0 : e);
                             }}
                             min={0}
                         />

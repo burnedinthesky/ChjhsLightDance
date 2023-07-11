@@ -22,9 +22,8 @@ const AddLightBarPopover = ({
     openAddPins,
     setOpenAddPins,
 }: AddLightBarPopoverProps) => {
-    const { boardLG, setELLGConfig } = useBoardStore((state) => ({
+    const { boardLG } = useBoardStore((state) => ({
         boardLG: selectedBoard ? state.boards.find((brd) => brd.id === selectedBoard)?.lightGroups ?? null : null,
-        setELLGConfig: state.setELLGConfig,
     }));
 
     return (
@@ -71,7 +70,7 @@ const AddLightBarPopover = ({
                         onClick={() => {
                             if (!selectedAddPin[config.id]) return;
                             console.log(selectedAddPin[config.id]);
-                            setELLGConfig(config.id, [...(config.elConfig ?? []), selectedAddPin[config.id]!]);
+                            // setELLGConfig(config.id, [...(config.elConfig ?? []), selectedAddPin[config.id]!]);
                             setOpenAddPins((cur) => cur.filter((id) => id !== config.id));
                         }}
                     >

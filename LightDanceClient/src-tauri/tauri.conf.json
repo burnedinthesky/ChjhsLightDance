@@ -39,7 +39,8 @@
                 "./resources/bridger/bundle.cjs",
                 "./resources/py-scripts/light_group_parser.py",
                 "./resources/py-scripts/cal_length.py",
-                "./resources/py-scripts/compile_dance.py"
+                "./resources/py-scripts/compile_dance.py",
+                "./resources/py-scripts/color_lib.py"
             ]
         },
         "security": {

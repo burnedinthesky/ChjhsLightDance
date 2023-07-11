@@ -42,7 +42,7 @@ function connectWebSocket() {
     ws.onclose = (e) => {
         setConnected(false);
         logPreConMessage(`Connection closed: ${parseWSError(e)}`);
-        const timeout = 1000 * 2 ** Math.min(reconnectAttempts++, 7);
+        const timeout = 1000 * 2 ** Math.min(reconnectAttempts++, 4);
         logPreConMessage(`Reconnecting in ${timeout / 1000} seconds...`);
         setTimeout(connectWebSocket, timeout);
     };

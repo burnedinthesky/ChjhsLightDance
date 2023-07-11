@@ -1,6 +1,5 @@
 import { create } from "zustand";
 import { v4 as uuidv4 } from "uuid";
-import { sendWSMessage } from "../lib/wsPortal";
 import { useBoardStore } from "./Boards";
 import { showNotification } from "@mantine/notifications";
 
@@ -8,27 +7,37 @@ const { setBoardStatus } = useBoardStore.getState();
 
 export const useShowStore = create<{
     showId: string | null;
+    audioDelay: number;
     boardState: { id: string; name: string; ready: "pending" | "online" | "done" }[];
     showState: "initializing" | "running" | "complete";
+
+    setAudioDelay(delay: number): void;
 
     startShow(): void;
     endShow(type: "startFailed" | "complete" | "terminated", boards?: string[]): void;
     resetShow(): void;
 
     setBoardState(boardId: string, boardState: "pending" | "online" | "done"): void;
-    initializeShow(boards: { id: string; name: string }[], startTime: number): void;
+    initializeShow(boards: { id: string; name: string }[]): void;
     completeShow(): void;
 }>((set, get) => ({
     boardState: [],
+    audioDelay: 0,
     showState: "initializing",
     showId: null,
+
+    setAudioDelay(delay) {
+        set((state) => ({
+            ...state,
+            audioDelay: delay,
+        }));
+    },
 
     startShow() {
         get().resetShow();
         set((state) => ({ ...state, showId: uuidv4(), showState: "initializing" }));
     },
     endShow(type, boards) {
-        sendWSMessage("showStop", "");
         if (type == "terminated")
             showNotification({
                 message: "Show terminated by user",
@@ -66,12 +75,12 @@ export const useShowStore = create<{
             })),
         }));
     },
-    initializeShow(boards, startTime) {
+    initializeShow(boards) {
         set((state) => ({
             ...state,
             boardState: boards.map((board) => ({ ...board, ready: "pending" })),
         }));
-        sendWSMessage("showStart", startTime.toString());
+
         boards.forEach((board) => setBoardStatus(board.id, "inshow"));
         set((state) => ({ ...state, showState: "running" }));
     },
